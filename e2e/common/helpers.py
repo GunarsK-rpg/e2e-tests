@@ -387,6 +387,16 @@ def verify_url_contains(page: Page, path: str, description: Optional[str] = None
     return False
 
 
+def verify_input_value(page: Page, value: str, name: str) -> bool:
+    """Check that an input element contains the expected value"""
+    el = page.locator(f'input[value="{value}"]')
+    if el.count() > 0:
+        print(f"   [OK] {name}: {value}")
+        return True
+    print(f"   [INFO] {name} not found in any input")
+    return False
+
+
 def verify_element_exists(page: Page, selector: str, name: str) -> Tuple[bool, int]:
     """Check if element exists and log result"""
     elements = page.locator(selector)

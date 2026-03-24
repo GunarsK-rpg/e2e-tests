@@ -30,7 +30,7 @@ from e2e.common.helpers import (
     print_test_summary,
     take_screenshot,
     verify_element_exists,
-    verify_text_visible,
+    verify_input_value,
     wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
@@ -84,9 +84,11 @@ def test_combat_encounter():
 
             take_screenshot(page, "combat_02_created", "Combat created")
 
-            # Step 3: Verify combat detail
+            # Step 3: Verify combat detail (name is in a q-input, not a text node)
             print("\n3. Verifying combat detail...")
-            assert verify_text_visible(page, combat_name), f"Combat '{combat_name}' not visible"
+            assert verify_input_value(
+                page, combat_name, "Combat name"
+            ), f"Combat '{combat_name}' not found"
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
             # Step 4: Add NPC via dialog
