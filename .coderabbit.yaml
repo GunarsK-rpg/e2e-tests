@@ -1,0 +1,6 @@
+language: en
+reviews:
+  auto_review:
+    enabled: true
+  path_filters:
+    - "!test-files/**"

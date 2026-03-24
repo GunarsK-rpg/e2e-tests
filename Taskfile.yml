@@ -1,0 +1,223 @@
+version: '3'
+
+tasks:
+  # Top-level test execution tasks
+  test:all:
+    desc: Run all RPG E2E tests
+    cmds:
+      - python run_tests.py --no-confirm
+
+  test:all:headless:
+    desc: Run all tests in headless mode
+    cmds:
+      - TEST_HEADLESS=true python run_tests.py --no-confirm
+
+  test:all:interactive:
+    desc: Run all tests with confirmation prompt
+    cmds:
+      - python run_tests.py
+
+  # Individual test suite tasks
+  test:auth:
+    desc: Run authentication flow tests
+    cmds:
+      - python e2e/auth-flow/test_register.py
+      - python e2e/auth-flow/test_login.py
+
+  test:auth:login:
+    desc: Run login flow test
+    cmds:
+      - python e2e/auth-flow/test_login.py
+
+  test:auth:register:
+    desc: Run registration flow test
+    cmds:
+      - python e2e/auth-flow/test_register.py
+
+  test:characters:
+    desc: Run all character tests
+    cmds:
+      - python e2e/characters/test_character_creation.py
+      - python e2e/characters/test_character_sheet.py
+      - python e2e/characters/test_character_deletion.py
+
+  test:characters:creation:
+    desc: Run character creation wizard test
+    cmds:
+      - python e2e/characters/test_character_creation.py
+
+  test:characters:sheet:
+    desc: Run character sheet test
+    cmds:
+      - python e2e/characters/test_character_sheet.py
+
+  test:characters:deletion:
+    desc: Run character deletion test
+    cmds:
+      - python e2e/characters/test_character_deletion.py
+
+  test:campaigns:
+    desc: Run all campaign tests
+    cmds:
+      - python e2e/campaigns/test_campaign_crud.py
+      - python e2e/campaigns/test_campaign_join.py
+
+  test:campaigns:crud:
+    desc: Run campaign CRUD test
+    cmds:
+      - python e2e/campaigns/test_campaign_crud.py
+
+  test:campaigns:join:
+    desc: Run campaign join test
+    cmds:
+      - python e2e/campaigns/test_campaign_join.py
+
+  test:combat:
+    desc: Run all combat tests
+    cmds:
+      - python e2e/combat/test_npc_library.py
+      - python e2e/combat/test_combat_encounter.py
+
+  test:combat:npc:
+    desc: Run NPC library test
+    cmds:
+      - python e2e/combat/test_npc_library.py
+
+  test:combat:encounter:
+    desc: Run combat encounter test
+    cmds:
+      - python e2e/combat/test_combat_encounter.py
+
+  # Setup and configuration
+  setup:
+    desc: Set up testing environment
+    cmds:
+      - python -m pip install -r requirements.txt
+      - python -m playwright install chromium
+      - echo "Testing environment setup complete!"
+
+  setup:env:
+    desc: Create .env file from template
+    cmds:
+      - cmd: cp .env.example .env
+        platforms: [linux, darwin]
+      - cmd: copy .env.example .env
+        platforms: [windows]
+      - echo "Created .env file. Please edit it with your credentials."
+
+  # Cleanup tasks
+  clean:
+    desc: Clean test artifacts and screenshots
+    # Screenshot dir follows TEST_SCREENSHOT_DIR env var (defaults to system temp)
+    cmds:
+      - cmd: rm -rf ${TEST_SCREENSHOT_DIR:-/tmp}/test_*.png e2e/auth/.auth/
+        platforms: [linux, darwin]
+        ignore_error: true
+      - cmd: python -c "import tempfile, glob, os; d=os.environ.get('TEST_SCREENSHOT_DIR',tempfile.gettempdir()); [os.remove(f) for f in glob.glob(os.path.join(d,'test_*.png'))]"
+        platforms: [windows]
+        ignore_error: true
+      - cmd: if exist e2e\auth\.auth rmdir /s /q e2e\auth\.auth
+        platforms: [windows]
+        ignore_error: true
+      - echo "Cleaned test artifacts"
+
+  clean:cache:
+    desc: Clean Python cache files
+    cmds:
+      - cmd: find . -type d -name __pycache__ -exec rm -rf {} +
+        platforms: [linux, darwin]
+        ignore_error: true
+      - cmd: for /d /r . %d in (__pycache__) do @if exist "%d" rmdir /s /q "%d"
+        platforms: [windows]
+        ignore_error: true
+      - echo "Cleaned Python cache"
+
+  # Code quality tasks
+  lint:
+    desc: Run all linters (black, flake8, isort, pylint, mypy)
+    cmds:
+      - task: lint:black
+      - task: lint:flake8
+      - task: lint:isort
+      - task: lint:pylint
+      - task: lint:mypy
+
+  lint:black:
+    desc: Check code formatting with black
+    cmds:
+      - python -m black --check --diff .
+
+  lint:flake8:
+    desc: Lint code with flake8
+    cmds:
+      - python -m flake8 .
+
+  lint:isort:
+    desc: Check import sorting with isort
+    cmds:
+      - python -m isort --check-only --diff .
+
+  lint:pylint:
+    desc: Run pylint static analysis
+    cmds:
+      - python -m pylint e2e/ run_tests.py
+
+  lint:mypy:
+    desc: Run mypy type checking
+    cmds:
+      - python -m mypy e2e/common e2e/auth run_tests.py
+
+  format:
+    desc: Auto-format code with black and isort
+    cmds:
+      - python -m black .
+      - python -m isort .
+      - echo "Code formatted successfully!"
+
+  format:check:
+    desc: Check if code needs formatting (dry run)
+    cmds:
+      - python -m black --check .
+      - python -m isort --check-only .
+
+  # CI/CD tasks
+  ci:all:
+    desc: Run all CI checks (lint only, no tests)
+    cmds:
+      - task: lint:black
+      - task: lint:flake8
+      - task: lint:isort
+      - task: lint:pylint
+      - task: lint:mypy
+
+  # Documentation and help
+  list:
+    desc: List all available test suites
+    cmds:
+      - echo "Available test suites:"
+      - echo ""
+      - echo "  ALL TESTS:"
+      - echo "    task test:all              - Run all RPG E2E tests"
+      - echo "    task test:all:headless     - Run all tests headless"
+      - echo "    task test:all:interactive  - Run with confirmation prompt"
+      - echo ""
+      - echo "  AUTH TESTS:"
+      - echo "    task test:auth             - All auth tests"
+      - echo "    task test:auth:login       - Login flow"
+      - echo "    task test:auth:register    - Registration flow"
+      - echo ""
+      - echo "  CHARACTER TESTS:"
+      - echo "    task test:characters            - All character tests"
+      - echo "    task test:characters:creation    - Character creation wizard"
+      - echo "    task test:characters:sheet       - Character sheet"
+      - echo "    task test:characters:deletion    - Character deletion"
+      - echo ""
+      - echo "  CAMPAIGN TESTS:"
+      - echo "    task test:campaigns         - All campaign tests"
+      - echo "    task test:campaigns:crud     - Campaign CRUD"
+      - echo "    task test:campaigns:join     - Campaign join"
+      - echo ""
+      - echo "  COMBAT TESTS:"
+      - echo "    task test:combat             - All combat tests"
+      - echo "    task test:combat:npc          - NPC library"
+      - echo "    task test:combat:encounter    - Combat encounter"

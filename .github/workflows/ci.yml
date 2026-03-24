@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # Job 1: Code Quality - Python linting and formatting
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check formatting with black
+        run: black --check --diff .
+
+      - name: Check import sorting with isort
+        run: isort --check-only --diff .
+
+      - name: Lint with flake8
+        run: flake8 .
+
+  # Job 2: Test Configuration - Validate test setup
+  test-config:
+    name: Test Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Verify .env.example exists
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "ERROR: .env.example not found"
+            exit 1
+          fi
+          echo ".env.example found"
+
+      - name: Verify test structure
+        run: |
+          python -c "
+          import sys
+          from pathlib import Path
+
+          required_dirs = [
+              'e2e/common',
+              'e2e/auth',
+              'e2e/auth-flow',
+              'e2e/characters',
+              'e2e/campaigns',
+              'e2e/combat'
+          ]
+
+          missing = []
+          for dir_path in required_dirs:
+              if not Path(dir_path).exists():
+                  missing.append(dir_path)
+
+          if missing:
+              print(f'ERROR: Missing directories: {missing}')
+              sys.exit(1)
+
+          print('All required directories exist')
+          "
+
+      - name: Validate Python imports
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+
+          try:
+              from e2e.common.config import get_config
+              from e2e.auth.auth_manager import AuthManager
+              from e2e.common.helpers import fill_input, click_button
+              print('All imports successful')
+          except ImportError as e:
+              print(f'ERROR: Import failed: {e}')
+              sys.exit(1)
+          "
+
+  # Job 3: Dry Run - Compile all Python files
+  test-dry-run:
+    name: Test Dry Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Verify test runner exists
+        run: |
+          if [ ! -f run_tests.py ]; then
+            echo "ERROR: run_tests.py not found"
+            exit 1
+          fi
+          python -m py_compile run_tests.py
+          echo "Test runner compiles successfully"
+
+      - name: Verify all test files compile
+        run: |
+          python -m compileall e2e/
+
+  # Summary job - require all to pass
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [code-quality, test-config, test-dry-run]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more CI jobs failed or were cancelled"
+            exit 1
+          fi
+          echo "All CI jobs passed successfully!"
