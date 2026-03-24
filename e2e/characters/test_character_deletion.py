@@ -93,14 +93,30 @@ def test_character_deletion():
             page.wait_for_timeout(2000)
             print("   [OK] Deletion confirmed")
 
-            # Step 7: Verify redirect
-            print("\n7. Verifying redirect...")
-            take_screenshot(page, "delete_07_after", "After deletion")
-            current = page.url
-            if "/characters/" not in current or current.endswith("/characters"):
-                print(f"   [OK] Redirected to: {current}")
+            # Step 7: Verify dialog closed
+            print("\n7. Verifying dialog closed...")
+            dialog = page.locator(".q-dialog")
+            if dialog.count() == 0:
+                print("   [OK] Dialog closed")
             else:
-                print(f"   [INFO] Current URL: {current}")
+                print("   [INFO] Dialog still visible")
+
+            # Step 8: Verify redirected to characters list
+            print("\n8. Verifying redirect...")
+            wait_for_page_load(page)
+            page.wait_for_timeout(1000)
+            take_screenshot(page, "delete_08_after", "After deletion")
+
+            # Navigate to characters list and verify hero is gone
+            navigate_to(page, BASE_URL, "/")
+            wait_for_spinner_gone(page)
+
+            remaining = page.locator(f'{HERO_CARD}:has-text("{card_name}")')
+            if remaining.count() == 0:
+                print(f"   [OK] '{card_name}' no longer in character list")
+            else:
+                print(f"   [FAIL] '{card_name}' still visible in list")
+                return False
 
             print_test_summary(
                 "CHARACTER DELETION",
@@ -111,7 +127,8 @@ def test_character_deletion():
                     "Review step navigated",
                     "Delete dialog opened",
                     "Confirmation typed and confirmed",
-                    "Redirected after deletion",
+                    "Dialog closed",
+                    "Character removed from list",
                 ],
             )
             return True
