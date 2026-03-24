@@ -1,11 +1,29 @@
+# Environment variables with credentials
+.env
+
+# Saved auth contexts (contains session cookies)
+e2e/auth/.auth/
+
+# Test artifacts
+*.png
+*.jpg
+*.mp4
+*.webm
+
+# Python
 __pycache__/
-*.pyc
-*.pyo
-.mypy_cache/
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.so
+.Python
 *.egg-info/
 dist/
 build/
-.env
-e2e/auth/.auth/
-*.png
+
+# Type checking / linting cache
+.mypy_cache/
+.pytest_cache/
+
+# Test reports
+test-results/
+playwright-report/
