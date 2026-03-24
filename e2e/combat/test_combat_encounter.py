@@ -20,6 +20,7 @@ from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
     click_button,
+    click_button_by_aria,
     click_button_if_visible,
     click_first_listbox_item,
     confirm_dialog,
@@ -123,10 +124,21 @@ def test_combat_encounter():
 
             take_screenshot(page, "combat_07_state", "Combat state")
 
-            # Step 8: Cleanup
+            # Step 8: Cleanup - delete test campaign
             print("\n8. Cleaning up...")
-            click_button_if_visible(page, "Back")
-            wait_for_page_load(page)
+            navigate_to(page, BASE_URL, "/campaigns")
+            wait_for_spinner_gone(page)
+
+            campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
+            if campaign_card.count() > 0:
+                campaign_card.click()
+                wait_for_page_load(page)
+                page.wait_for_timeout(500)
+                click_button_by_aria(page, "Delete campaign")
+                page.wait_for_timeout(500)
+                confirm_dialog(page, "OK")
+                page.wait_for_timeout(1000)
+                print("   [OK] Test campaign deleted")
 
             take_screenshot(page, "combat_08_done", "Test complete")
 

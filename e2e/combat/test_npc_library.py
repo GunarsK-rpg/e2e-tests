@@ -125,7 +125,9 @@ def test_npc_library():
 
             # Step 8: Verify updated name (stays on detail page after edit-save)
             print("\n8. Verifying update...")
-            verify_text_visible(page, updated_name)
+            assert verify_text_visible(
+                page, updated_name
+            ), f"Updated name '{updated_name}' not visible"
 
             # Step 9: Archive NPC
             print("\n9. Archiving NPC...")

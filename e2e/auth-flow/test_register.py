@@ -32,6 +32,8 @@ def test_register_flow():
     """Register a new user and save credentials for the test suite"""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=config["headless"], slow_mo=config["slow_mo"])
+        context = None
+        page = None
         context = browser.new_context(ignore_https_errors=config.get("ignore_https_errors", False))
         page = context.new_page()
 
@@ -123,11 +125,13 @@ def test_register_flow():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "register_error", "Error")
+            if page is not None:
+                take_screenshot(page, "register_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

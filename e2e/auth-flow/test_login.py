@@ -73,10 +73,8 @@ def test_login_flow():
             page.goto(f"{BASE_URL}/")
             wait_for_page_load(page)
             page.wait_for_timeout(1000)
-            if "/login" in page.url:
-                print("   [OK] Redirected to login")
-            else:
-                print("   [INFO] No redirect")
+            assert "/login" in page.url, f"Expected redirect to /login, got {page.url}"
+            print("   [OK] Redirected to login")
 
             # Step 4: Login with credentials
             print("\n4. Logging in...")
@@ -99,7 +97,7 @@ def test_login_flow():
 
             # Step 5: Verify landing page
             print("\n5. Verifying landing page...")
-            verify_text_visible(page, "My Characters")
+            assert verify_text_visible(page, "My Characters"), "Landing page text not visible"
 
             # Step 6: Session persistence
             print("\n6. Testing session persistence...")
@@ -115,20 +113,16 @@ def test_login_flow():
             # Step 7: Logout
             print("\n7. Testing logout...")
             do_logout(page)
-            if "/login" in page.url:
-                print("   [OK] Logout successful")
-            else:
-                print(f"   [INFO] After logout: {page.url}")
+            assert "/login" in page.url, f"Expected redirect to /login after logout, got {page.url}"
+            print("   [OK] Logout successful")
 
             # Step 8: Access denied after logout
             print("\n8. Verifying access denied...")
             page.goto(f"{BASE_URL}/")
             wait_for_page_load(page)
             page.wait_for_timeout(1000)
-            if "/login" in page.url:
-                print("   [OK] Access denied")
-            else:
-                print("   [INFO] Page accessible after logout")
+            assert "/login" in page.url, f"Expected /login after logout, got {page.url}"
+            print("   [OK] Access denied")
 
             print_test_summary(
                 "LOGIN FLOW",

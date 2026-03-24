@@ -82,10 +82,10 @@ def test_character_sheet():
             active_tab = page.locator(".q-tab--active .q-tab__label").first
             if active_tab.count() > 0:
                 tab_text = active_tab.inner_text()
-                assert tab_text == "Stats", f"Expected active tab 'Stats', got '{tab_text}'"
+                assert tab_text.upper() == "STATS", f"Expected active tab 'Stats', got '{tab_text}'"
                 print(f"   [OK] Active tab: {tab_text}")
             else:
-                print("   [INFO] No active tab found")
+                raise AssertionError("No default active tab found: '.q-tab--active .q-tab__label'")
 
             # Step 4+: Navigate through remaining tabs
             for i, tab_label in enumerate(SHEET_TABS, start=4):

@@ -34,8 +34,8 @@ def load_test_user() -> dict[str, str] | None:
     """Load saved test user credentials"""
     if TEST_USER_PATH.exists():
         try:
-            data: dict[str, str] = json.loads(TEST_USER_PATH.read_text(encoding="utf-8"))
-            if data.get("username") and data.get("password"):
+            data = json.loads(TEST_USER_PATH.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data.get("username") and data.get("password"):
                 return data
         except json.JSONDecodeError:
             pass
