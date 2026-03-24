@@ -22,7 +22,6 @@ from e2e.common.helpers import (
     click_button,
     click_button_by_aria,
     click_button_if_visible,
-    click_first_listbox_item,
     confirm_dialog,
     dismiss_dialog,
     fill_input,
@@ -91,11 +90,14 @@ def test_combat_encounter():
             ), f"Combat '{combat_name}' not found"
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
-            # Step 4: Add NPC via dialog
+            # Step 4: Add NPC via dialog (items use role="listitem", not "option")
             print("\n4. Adding NPC to combat...")
             if click_button_if_visible(page, "Add Enemy"):
                 page.wait_for_timeout(500)
-                if click_first_listbox_item(page, "NPC"):
+                npc_items = page.locator(".q-dialog .q-item--clickable")
+                if npc_items.count() > 0:
+                    npc_items.first.click()
+                    page.wait_for_timeout(300)
                     confirm_dialog(page, "Add")
                     page.wait_for_timeout(1000)
                     print("   [OK] NPC added")
