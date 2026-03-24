@@ -8,6 +8,7 @@ Matches: ReviewStep.vue (data-testid="delete-hero-btn")
 """
 
 import sys
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -39,6 +40,8 @@ def test_character_deletion():
 
         print("\n=== CHARACTER DELETION E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
 
@@ -135,13 +138,13 @@ def test_character_deletion():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "delete_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "delete_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

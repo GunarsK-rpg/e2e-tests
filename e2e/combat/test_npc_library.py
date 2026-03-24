@@ -12,6 +12,7 @@ Matches: CampaignDetailPage.vue (CampaignNpcList at bottom)
 
 import sys
 import time
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -41,6 +42,8 @@ def test_npc_library():
 
         print("\n=== NPC LIBRARY E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -152,13 +155,13 @@ def test_npc_library():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "npc_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "npc_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

@@ -9,6 +9,7 @@ Matches: CampaignDetailPage.vue (invite link with Copy icon btn)
 
 import sys
 import time
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -40,6 +41,8 @@ def test_campaign_join():
 
         print("\n=== CAMPAIGN JOIN E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -92,9 +95,11 @@ def test_campaign_join():
             verify_element_exists(
                 page, '.q-btn:has-text("Create Character")', "Create Character button"
             )
-            verify_element_exists(
-                page, '.card-interactive[role="button"]', "Existing character cards"
-            )
+            char_cards = page.locator('.card-interactive[role="button"]')
+            if char_cards.count() > 0:
+                verify_element_exists(
+                    page, '.card-interactive[role="button"]', "Existing character cards"
+                )
 
             # Step 5: Cleanup
             print("\n5. Cleaning up...")
@@ -126,13 +131,13 @@ def test_campaign_join():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "join_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "join_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

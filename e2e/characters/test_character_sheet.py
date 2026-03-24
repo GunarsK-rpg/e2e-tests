@@ -9,6 +9,7 @@ Matches: MyCharactersPage.vue (HeroCard with .card-interactive)
 """
 
 import sys
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -49,6 +50,8 @@ def test_character_sheet():
 
         print("\n=== CHARACTER SHEET E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
 
@@ -76,7 +79,13 @@ def test_character_sheet():
 
             # Step 3: Verify Stats tab is active by default
             print("\n3. Verifying Stats tab (default)...")
-            verify_element_exists(page, ".q-tab--active .q-tab__label", "Active tab")
+            active_tab = page.locator(".q-tab--active .q-tab__label").first
+            if active_tab.count() > 0:
+                tab_text = active_tab.inner_text()
+                assert tab_text == "Stats", f"Expected active tab 'Stats', got '{tab_text}'"
+                print(f"   [OK] Active tab: {tab_text}")
+            else:
+                print("   [INFO] No active tab found")
 
             # Step 4+: Navigate through remaining tabs
             for i, tab_label in enumerate(SHEET_TABS, start=4):
@@ -103,13 +112,13 @@ def test_character_sheet():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "sheet_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "sheet_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

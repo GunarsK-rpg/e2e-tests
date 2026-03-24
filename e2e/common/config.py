@@ -6,6 +6,7 @@ Loads settings from .env file and environment variables
 import os
 import re
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -52,6 +53,14 @@ class TestConfig:
 
         return default
 
+    @staticmethod
+    def _parse_int(value: Any, default: int) -> int:
+        """Parse integer from string, returning default on failure"""
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+
     def _parse_bool(self, value: Any) -> bool:
         """Parse boolean from string"""
         if isinstance(value, bool):
@@ -79,8 +88,8 @@ class TestConfig:
             "screenshot_dir": self._get_value(
                 "TEST_SCREENSHOT_DIR", tempfile.gettempdir(), env_vars
             ),
-            "slow_mo": int(self._get_value("TEST_SLOW_MO", "0", env_vars)),
-            "timeout": int(self._get_value("TEST_TIMEOUT", "30000", env_vars)),
+            "slow_mo": self._parse_int(self._get_value("TEST_SLOW_MO", "0", env_vars), 0),
+            "timeout": self._parse_int(self._get_value("TEST_TIMEOUT", "30000", env_vars), 30000),
             # Browser options
             "browser": self._get_value("TEST_BROWSER", "chromium", env_vars),
             "ignore_https_errors": self._parse_bool(
@@ -106,11 +115,14 @@ class TestConfig:
 
 # Global config instance
 _config = None
+_config_lock = threading.Lock()
 
 
 def get_config() -> TestConfig:
     """Get global config instance (singleton)"""
     global _config
     if _config is None:
-        _config = TestConfig()
+        with _config_lock:
+            if _config is None:
+                _config = TestConfig()
     return _config

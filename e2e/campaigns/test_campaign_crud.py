@@ -11,6 +11,7 @@ Matches: CampaignsPage.vue (q-btn "Create Campaign" with Plus icon)
 
 import sys
 import time
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -34,6 +35,11 @@ from e2e.common.helpers import (
 config = get_config()
 BASE_URL = config["web_url"]
 
+# Wait durations (ms) for UI transitions
+WAIT_SHORT = 500
+WAIT_MEDIUM = 1000
+WAIT_LONG = 1500
+
 
 def test_campaign_crud():
     """Test campaign create, edit, and delete"""
@@ -42,6 +48,8 @@ def test_campaign_crud():
 
         print("\n=== CAMPAIGN CRUD E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -58,7 +66,7 @@ def test_campaign_crud():
             print("\n2. Creating campaign...")
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(WAIT_SHORT)
 
             fill_input(page, "Campaign Name", campaign_name)
             fill_textarea(page, "Description", f"Test campaign {unique_suffix}")
@@ -69,7 +77,7 @@ def test_campaign_crud():
             print("\n3. Saving campaign...")
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(WAIT_LONG)
             print("   [OK] Campaign created")
 
             # Step 4: Verify detail page
@@ -82,12 +90,12 @@ def test_campaign_crud():
             print("\n5. Editing campaign...")
             click_button_by_aria(page, "Edit campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(WAIT_SHORT)
 
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(WAIT_MEDIUM)
             print("   [OK] Campaign updated")
 
             # Step 6: Verify update
@@ -97,10 +105,10 @@ def test_campaign_crud():
             # Step 7: Delete (trash button aria-label)
             print("\n7. Deleting campaign...")
             click_button_by_aria(page, "Delete campaign")
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(WAIT_SHORT)
             confirm_dialog(page, "OK")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
+            page.wait_for_timeout(WAIT_LONG)
             print("   [OK] Campaign deleted")
 
             # Step 8: Verify redirect
@@ -125,13 +133,13 @@ def test_campaign_crud():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "campaign_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "campaign_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

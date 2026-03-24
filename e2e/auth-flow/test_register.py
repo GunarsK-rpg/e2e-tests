@@ -8,10 +8,11 @@ Matches: RegisterPage.vue (q-form with q-input fields, q-btn type=submit)
 
 import sys
 import time
+import traceback
 
 from playwright.sync_api import expect, sync_playwright
 
-from e2e.auth.auth_manager import save_test_user
+from e2e.auth.auth_manager import AuthManager, save_test_user
 from e2e.common.config import get_config
 from e2e.common.helpers import (
     fill_input,
@@ -104,12 +105,7 @@ def test_register_flow():
             # Step 7: Save credentials for other tests
             print("\n7. Saving credentials...")
             save_test_user(test_username, test_password)
-
-            from e2e.auth.auth_manager import AUTH_DIR
-
-            AUTH_DIR.mkdir(parents=True, exist_ok=True)
-            context.storage_state(path=str(AUTH_DIR / "context.json"))
-            print("   [OK] Browser context saved")
+            AuthManager().save_context(context)
 
             print_test_summary(
                 "REGISTRATION FLOW",
@@ -128,8 +124,6 @@ def test_register_flow():
         except Exception as e:
             print(f"\n[ERROR] {e}")
             take_screenshot(page, "register_error", "Error")
-            import traceback
-
             traceback.print_exc()
             return False
         finally:

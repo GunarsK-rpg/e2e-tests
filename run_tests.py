@@ -99,7 +99,7 @@ class TestRunner:
             (base / "combat" / "test_combat_encounter.py", "Combat Encounter"),
         ]
 
-    def run_tests(self):
+    def run_tests(self, skip_missing=False):
         """Run all tests in order"""
         self.start_time = datetime.now(timezone.utc)
 
@@ -114,6 +114,8 @@ class TestRunner:
         for test_path, test_name in tests:
             if test_path.exists():
                 self.run_test(test_path, test_name)
+            elif skip_missing:
+                print(f"\n[SKIP] Test not found (skipped): {test_path}")
             else:
                 print(f"\n[SKIP] Test not found: {test_path}")
                 self.results.append(
@@ -171,6 +173,11 @@ def main():
         action="store_true",
         help="Skip confirmation prompt",
     )
+    parser.add_argument(
+        "--skip-missing",
+        action="store_true",
+        help="Skip missing test files instead of reporting them as failures",
+    )
 
     args = parser.parse_args()
 
@@ -195,7 +202,7 @@ def main():
             print("\n\nTest run cancelled.")
             return 1
 
-    all_passed = runner.run_tests()
+    all_passed = runner.run_tests(skip_missing=args.skip_missing)
 
     return 0 if all_passed else 1
 

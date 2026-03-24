@@ -8,6 +8,7 @@ Matches: LoginPage.vue (q-form, q-input Username/Password, q-btn submit)
 """
 
 import sys
+import traceback
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -147,8 +148,6 @@ def test_login_flow():
         except Exception as e:
             print(f"\n[ERROR] {e}")
             take_screenshot(page, "login_error", "Error")
-            import traceback
-
             traceback.print_exc()
             return False
         finally:

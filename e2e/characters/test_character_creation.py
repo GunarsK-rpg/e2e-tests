@@ -17,6 +17,7 @@ Wizard steps (CharacterCreationPage.vue):
 
 import sys
 import time
+import traceback
 
 from playwright.sync_api import sync_playwright
 
@@ -52,6 +53,8 @@ def test_character_creation():
 
         print("\n=== CHARACTER CREATION E2E TEST ===\n")
 
+        page = None
+        context = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -73,7 +76,7 @@ def test_character_creation():
 
             # Step 2: CultureStep (q-select dropdowns)
             print("\n2. Culture...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
             select_first_option(page, "Primary Culture")
             print("   [OK] Primary culture selected")
 
@@ -82,7 +85,7 @@ def test_character_creation():
 
             # Step 3: AttributesStep (+/- buttons, aria-label="Increase {name}")
             print("\n3. Attributes...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             # Increment first attribute (Strength) once
             click_increment(page, "Strength")
@@ -92,7 +95,7 @@ def test_character_creation():
 
             # Step 4: SkillsStep (+/- buttons, aria-label="Increase {name} rank")
             print("\n4. Skills...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             # Increment first skill rank - Athletics is typically first
             click_increment_rank(page, "Athletics")
@@ -102,7 +105,7 @@ def test_character_creation():
 
             # Step 5: ExpertisesStep (q-checkbox in q-list)
             print("\n5. Expertises...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             click_first_checkbox(page, "Expertise")
 
@@ -111,7 +114,7 @@ def test_character_creation():
 
             # Step 6: PathsStep (btn "Add Path" -> dialog with listbox)
             print("\n6. Paths...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             open_dialog_and_select_first(page, "Add Path", "Heroic path")
 
@@ -120,7 +123,7 @@ def test_character_creation():
 
             # Step 7: StartingKitStep (btn -> dialog with listbox)
             print("\n7. Starting Kit...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             open_dialog_and_select_first(page, "Choose Starting Kit", "Starting kit")
 
@@ -129,7 +132,7 @@ def test_character_creation():
 
             # Step 8: EquipmentStep (q-select + add buttons, items from kit)
             print("\n8. Equipment...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
             # Equipment is pre-populated from starting kit, just verify and advance
             take_screenshot(page, "cc_08_equipment", "Equipment")
             print("   [OK] Equipment step loaded")
@@ -137,7 +140,7 @@ def test_character_creation():
 
             # Step 9: PersonalDetailsStep (textarea fields)
             print("\n9. Personal Details...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             fill_textarea(page, "Biography", "Born in the wilds.")
             fill_textarea(page, "Appearance", "Tall with dark hair")
@@ -148,7 +151,7 @@ def test_character_creation():
 
             # Step 10: ReviewStep (summary + Finish)
             print("\n10. Review & Finish...")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             verify_text_visible(page, character_name)
             take_screenshot(page, "cc_10_review", "Review")
@@ -181,13 +184,13 @@ def test_character_creation():
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
-            take_screenshot(page, "cc_error", "Error")
-            import traceback
-
+            if page is not None:
+                take_screenshot(page, "cc_error", "Error")
             traceback.print_exc()
             return False
         finally:
-            context.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

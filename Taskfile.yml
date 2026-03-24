@@ -108,9 +108,13 @@ tasks:
   # Cleanup tasks
   clean:
     desc: Clean test artifacts and screenshots
+    # Screenshot dir follows TEST_SCREENSHOT_DIR env var (defaults to system temp)
     cmds:
-      - cmd: rm -rf /tmp/test_*.png e2e/auth/.auth/
+      - cmd: rm -rf ${TEST_SCREENSHOT_DIR:-/tmp}/test_*.png e2e/auth/.auth/
         platforms: [linux, darwin]
+        ignore_error: true
+      - cmd: python -c "import tempfile, glob, os; d=os.environ.get('TEST_SCREENSHOT_DIR',tempfile.gettempdir()); [os.remove(f) for f in glob.glob(os.path.join(d,'test_*.png'))]"
+        platforms: [windows]
         ignore_error: true
       - cmd: if exist e2e\auth\.auth rmdir /s /q e2e\auth\.auth
         platforms: [windows]

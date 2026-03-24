@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from playwright.sync_api import Locator, Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import expect
 
 # ========================================
 # SELECTORS (centralised)
@@ -82,7 +84,7 @@ def wait_for_spinner_gone(page: Page, timeout: int = 10000) -> None:
     spinner = page.locator(SPINNER)
     try:
         spinner.first.wait_for(state="hidden", timeout=timeout)
-    except Exception:
+    except PlaywrightTimeoutError:
         pass
 
 
@@ -365,8 +367,6 @@ def do_logout(page: Page, wait_ms: int = 1500) -> None:
 
 def verify_text_visible(page: Page, text: str, timeout: int = 5000) -> bool:
     """Assert text is visible on page"""
-    from playwright.sync_api import expect
-
     element = page.locator(f'text="{text}"').first
     if element.count() > 0:
         expect(element).to_be_visible(timeout=timeout)

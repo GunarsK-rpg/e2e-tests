@@ -37,7 +37,7 @@ def load_test_user() -> dict[str, str] | None:
             data: dict[str, str] = json.loads(TEST_USER_PATH.read_text(encoding="utf-8"))
             if data.get("username") and data.get("password"):
                 return data
-        except (json.JSONDecodeError, KeyError):
+        except json.JSONDecodeError:
             pass
     return None
 
@@ -51,9 +51,9 @@ class AuthManager:
         self.context_path = CONTEXT_PATH
 
         # Priority: explicit args > .env config > saved test user
-        if username and password:
+        if username is not None and password is not None:
             self.credentials = {"username": username, "password": password}
-        elif self.config["username"] and self.config["password"]:
+        elif self.config["username"] is not None and self.config["password"] is not None:
             self.credentials = {
                 "username": self.config["username"],
                 "password": self.config["password"],
