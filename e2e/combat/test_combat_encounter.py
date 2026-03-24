@@ -86,7 +86,7 @@ def test_combat_encounter():
 
             # Step 3: Verify combat detail
             print("\n3. Verifying combat detail...")
-            verify_text_visible(page, combat_name)
+            assert verify_text_visible(page, combat_name), f"Combat '{combat_name}' not visible"
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
             # Step 4: Add NPC via dialog

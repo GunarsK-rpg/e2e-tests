@@ -90,16 +90,16 @@ def test_campaign_join():
             # Step 4: Verify join page content
             print("\n4. Verifying join page...")
             if join_url:
-                verify_text_visible(page, campaign_name)
+                assert verify_text_visible(
+                    page, campaign_name
+                ), f"Campaign '{campaign_name}' not visible on join page"
 
             verify_element_exists(
                 page, '.q-btn:has-text("Create Character")', "Create Character button"
             )
             char_cards = page.locator('.card-interactive[role="button"]')
             if char_cards.count() > 0:
-                verify_element_exists(
-                    page, '.card-interactive[role="button"]', "Existing character cards"
-                )
+                print(f"   [OK] Existing character cards: {char_cards.count()}")
 
             # Step 5: Cleanup
             print("\n5. Cleaning up...")

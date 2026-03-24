@@ -51,6 +51,8 @@ class AuthManager:
         self.context_path = CONTEXT_PATH
 
         # Priority: explicit args > .env config > saved test user
+        if (username is None) != (password is None):
+            raise ValueError("Both username and password must be provided, not just one")
         if username is not None and password is not None:
             self.credentials = {"username": username, "password": password}
         elif self.config["username"] is not None and self.config["password"] is not None:

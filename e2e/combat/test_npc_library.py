@@ -20,6 +20,7 @@ from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
     click_button,
+    click_button_by_aria,
     confirm_dialog,
     fill_input,
     navigate_to,
@@ -139,6 +140,22 @@ def test_npc_library():
 
             take_screenshot(page, "npc_09_archived", "After archive")
 
+            # Step 10: Cleanup - delete test campaign
+            print("\n10. Cleaning up...")
+            navigate_to(page, BASE_URL, "/campaigns")
+            wait_for_spinner_gone(page)
+
+            campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
+            if campaign_card.count() > 0:
+                campaign_card.click()
+                wait_for_page_load(page)
+                page.wait_for_timeout(500)
+                click_button_by_aria(page, "Delete campaign")
+                page.wait_for_timeout(500)
+                confirm_dialog(page, "OK")
+                page.wait_for_timeout(1000)
+                print("   [OK] Test campaign deleted")
+
             print_test_summary(
                 "NPC LIBRARY",
                 [
@@ -151,6 +168,7 @@ def test_npc_library():
                     "NPC name edited",
                     "Updated name verified",
                     "NPC archived",
+                    "Campaign cleaned up",
                 ],
             )
             return True
