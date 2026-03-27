@@ -175,6 +175,7 @@ jobs:
           TEST_TIMEOUT=60000
           TEST_BROWSER=chromium
           TEST_IGNORE_HTTPS_ERRORS=true
+          TEST_SCREENSHOT_DIR=test-results
           EOF
 
       - name: Run E2E tests

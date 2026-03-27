@@ -5,7 +5,6 @@ Quasar-aware UI interaction helpers for the RPG frontend
 Selectors live here -- tests should call helpers, not build selectors.
 """
 
-import tempfile
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -71,8 +70,11 @@ def wait_for_page_load(page: Page) -> None:
 
 def take_screenshot(page: Page, name: str, description: str = "") -> str:
     """Take a screenshot with consistent naming"""
-    temp_dir = Path(tempfile.gettempdir())
-    path = temp_dir / f"test_{name}.png"
+    from e2e.common.config import get_config
+
+    screenshot_dir = Path(get_config()["screenshot_dir"])
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    path = screenshot_dir / f"test_{name}.png"
     page.screenshot(path=str(path))
     if description:
         print(f"   [SCREENSHOT] {description}: {path}")
