@@ -96,6 +96,16 @@ tasks:
       - python -m playwright install chromium
       - echo "Testing environment setup complete!"
 
+  ci:install-tools:
+    desc: Install CI tools locally (requires pip, npm, and go)
+    cmds:
+      - cmd: python -m pip install --user yamllint==1.35.1
+        platforms: [windows]
+      - cmd: python3 -m pip install --user yamllint==1.35.1
+        platforms: [linux, darwin]
+      - npm install markdownlint-cli2@0.17.2
+      - go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
   setup:env:
     desc: Create .env file from template
     cmds:
@@ -181,6 +191,21 @@ tasks:
       - python -m isort --check-only .
 
   # CI/CD tasks
+  lint:actionlint:
+    desc: Lint GitHub Actions workflow files
+    cmds:
+      - actionlint
+
+  lint:yaml:
+    desc: Lint YAML files
+    cmds:
+      - python -m yamllint .
+
+  lint:markdown:
+    desc: Lint Markdown files
+    cmds:
+      - npx markdownlint-cli2
+
   ci:all:
     desc: Run all CI checks (lint only, no tests)
     cmds:
@@ -189,6 +214,16 @@ tasks:
       - task: lint:isort
       - task: lint:pylint
       - task: lint:mypy
+      - task: lint:yaml
+      - task: lint:actionlint
+      - task: lint:markdown
+      - echo "All CI checks passed!"
+
+  ci:fix:
+    desc: Auto-fix all fixable issues (format, lint:markdown)
+    cmds:
+      - task: format
+      - npx markdownlint-cli2 --fix
 
   # Documentation and help
   list:
