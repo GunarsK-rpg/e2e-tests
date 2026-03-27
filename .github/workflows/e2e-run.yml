@@ -132,6 +132,7 @@ jobs:
         working-directory: portfolio/infrastructure
         run: |
           docker compose up -d --no-deps traefik
+          docker compose up minio-setup
           docker compose up -d auth-service files-api
           echo "Portfolio services starting..."
 
