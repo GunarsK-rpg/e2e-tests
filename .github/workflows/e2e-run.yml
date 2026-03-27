@@ -175,8 +175,8 @@ jobs:
 
           # Wait for all builds
           failed=0
-          for pid in $pid1 $pid2 $pid3 $pid4; do
-            wait $pid || failed=1
+          for pid in "$pid1" "$pid2" "$pid3" "$pid4"; do
+            wait "$pid" || failed=1
           done
           if [ "$failed" -eq 1 ]; then
             echo "One or more image builds failed"
