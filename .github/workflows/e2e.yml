@@ -1,0 +1,11 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    uses: GunarsK-rpg/e2e-tests/.github/workflows/e2e-run.yml@main
+    secrets: inherit

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -39,7 +39,47 @@ jobs:
       - name: Lint with flake8
         run: flake8 .
 
-  # Job 2: Test Configuration - Validate test setup
+  # Job 2: YAML Lint
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: YAML Lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .
+          config_file: .yamllint.yml
+          strict: false
+
+  # Job 3: Workflow Lint - Validate GitHub Actions workflows
+  workflow-lint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install actionlint
+        run: bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: Run actionlint
+        run: ./actionlint -color
+
+  # Job 4: Markdown Lint
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Markdown Lint
+        uses: DavidAnson/markdownlint-cli2-action@v19
+
+  # Job 5: Test Configuration - Validate test setup
   test-config:
     name: Test Configuration
     runs-on: ubuntu-latest
@@ -147,7 +187,7 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [code-quality, test-config, test-dry-run]
+    needs: [code-quality, yaml-lint, workflow-lint, markdown-lint, test-config, test-dry-run]
     if: always()
     steps:
       - name: Check all jobs status

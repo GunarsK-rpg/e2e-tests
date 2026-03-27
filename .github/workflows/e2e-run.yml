@@ -1,0 +1,220 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+
+env:
+  PYTHON_VERSION: '3.12'
+  TRIGGER_REPO: ${{ github.event.repository.name }}
+  RPG_WEB_URL: https://localhost:8543
+  RPG_API_URL: https://localhost:8543/api/v1
+  AUTH_URL: https://localhost:8443/auth/v1
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # -- Checkout triggering repo (PR branch) --
+      - name: Checkout ${{ env.TRIGGER_REPO }} (trigger)
+        uses: actions/checkout@v6
+        with:
+          path: rpg/${{ env.TRIGGER_REPO }}
+
+      # -- Checkout RPG repos (default branch, skip if trigger) --
+      - name: Checkout database
+        if: env.TRIGGER_REPO != 'database'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/database
+          path: rpg/database
+
+      - name: Checkout public-api
+        if: env.TRIGGER_REPO != 'public-api'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/public-api
+          path: rpg/public-api
+
+      - name: Checkout public-web
+        if: env.TRIGGER_REPO != 'public-web'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/public-web
+          path: rpg/public-web
+
+      - name: Checkout RPG infrastructure
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/infrastructure
+          path: rpg/infrastructure
+
+      - name: Checkout database-seeds
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/database-seeds
+          path: rpg/database-seeds
+          token: ${{ secrets.E2E_ACCESS_TOKEN }}
+
+      - name: Checkout e2e-tests
+        if: env.TRIGGER_REPO != 'e2e-tests'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/e2e-tests
+          path: rpg/e2e-tests
+
+      # -- Checkout portfolio repos (all public) --
+      - name: Checkout portfolio infrastructure
+        uses: actions/checkout@v6
+        with:
+          repository: GunarsK-portfolio/infrastructure
+          path: portfolio/infrastructure
+
+      - name: Checkout portfolio auth-service
+        uses: actions/checkout@v6
+        with:
+          repository: GunarsK-portfolio/auth-service
+          path: portfolio/auth-service
+
+      - name: Checkout portfolio files-api
+        uses: actions/checkout@v6
+        with:
+          repository: GunarsK-portfolio/files-api
+          path: portfolio/files-api
+
+      - name: Checkout portfolio database
+        uses: actions/checkout@v6
+        with:
+          repository: GunarsK-portfolio/database
+          path: portfolio/database
+
+      # -- Setup Python and Playwright --
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: rpg/e2e-tests/requirements.txt
+
+      - name: Install E2E dependencies
+        working-directory: rpg/e2e-tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      # -- Environment setup --
+      - name: Create .env files
+        run: |
+          cp portfolio/infrastructure/.env.example portfolio/infrastructure/.env
+          cp rpg/infrastructure/.env.example rpg/infrastructure/.env
+
+      - name: Generate TLS certificates
+        run: |
+          for dir in portfolio/infrastructure/docker/traefik/certs rpg/infrastructure/docker/traefik/certs; do
+            mkdir -p "$dir"
+            openssl req -x509 -newkey rsa:2048 -nodes \
+              -keyout "$dir/localhost.key" \
+              -out "$dir/localhost.crt" \
+              -days 1 \
+              -subj "/CN=localhost" \
+              -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+            chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
+          done
+
+      # -- Start services --
+      - name: Start portfolio services
+        working-directory: portfolio/infrastructure
+        run: |
+          docker compose up -d --no-deps traefik
+          docker compose up -d auth-service files-api
+          echo "Portfolio services starting..."
+
+      - name: Start RPG services
+        working-directory: rpg/infrastructure
+        run: |
+          docker compose up -d --build
+          echo "RPG services starting..."
+
+      # -- Health checks --
+      - name: Wait for services to be healthy
+        run: |
+          echo "Starting parallel health checks..."
+          timeout 180 bash -c 'until curl -sf http://localhost:8084/health; do sleep 2; done' & pid1=$!
+          timeout 180 bash -c 'until curl -sf http://localhost:8085/health; do sleep 2; done' & pid2=$!
+          timeout 180 bash -c 'until curl -skf ${{ env.RPG_API_URL }}/health; do sleep 2; done' & pid3=$!
+          timeout 180 bash -c 'until curl -skf ${{ env.RPG_WEB_URL }}/; do sleep 2; done' & pid4=$!
+          failed=0
+          for pid in $pid1 $pid2 $pid3 $pid4; do
+            wait "$pid" || failed=1
+          done
+          if [ "$failed" -eq 1 ]; then
+            echo "One or more health checks failed!"
+            exit 1
+          fi
+          echo "All services are healthy!"
+
+      # -- Run tests --
+      - name: Create E2E .env
+        working-directory: rpg/e2e-tests
+        run: |
+          cat > .env << 'EOF'
+          TEST_HEADLESS=true
+          TEST_TIMEOUT=60000
+          TEST_BROWSER=chromium
+          TEST_IGNORE_HTTPS_ERRORS=true
+          EOF
+
+      - name: Run E2E tests
+        working-directory: rpg/e2e-tests
+        run: python run_tests.py --no-confirm
+        continue-on-error: true
+        id: e2e_tests
+
+      # -- Artifacts and cleanup --
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-test-results
+          path: |
+            rpg/e2e-tests/test-results/
+            rpg/e2e-tests/**/*.png
+            rpg/e2e-tests/**/*.mp4
+          retention-days: 7
+
+      - name: Show docker logs on failure
+        if: steps.e2e_tests.outcome == 'failure'
+        run: |
+          echo "=== RPG Container Status ==="
+          (cd rpg/infrastructure && docker compose ps -a)
+          echo ""
+          echo "=== Portfolio Container Status ==="
+          (cd portfolio/infrastructure && docker compose ps -a)
+          echo ""
+          echo "=== RPG public-api logs ==="
+          (cd rpg/infrastructure && docker compose logs public-api --tail=100)
+          echo ""
+          echo "=== RPG public-web logs ==="
+          (cd rpg/infrastructure && docker compose logs public-web --tail=100)
+          echo ""
+          echo "=== RPG traefik logs ==="
+          (cd rpg/infrastructure && docker compose logs traefik --tail=50)
+          echo ""
+          echo "=== Portfolio auth-service logs ==="
+          (cd portfolio/infrastructure && docker compose logs auth-service --tail=100)
+          echo ""
+          echo "=== Portfolio files-api logs ==="
+          (cd portfolio/infrastructure && docker compose logs files-api --tail=50)
+
+      - name: Stop services
+        if: always()
+        run: |
+          (cd rpg/infrastructure && docker compose down -v)
+          (cd portfolio/infrastructure && docker compose down -v)
+
+      - name: Check E2E test result
+        if: steps.e2e_tests.outcome == 'failure'
+        run: exit 1
