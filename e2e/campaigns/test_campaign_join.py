@@ -96,20 +96,6 @@ def test_campaign_join():
             if char_cards.count() > 0:
                 print(f"   [OK] Existing character cards: {char_cards.count()}")
 
-            # Step 5: Cleanup
-            print("\n5. Cleaning up...")
-            navigate_to(page, BASE_URL, "/campaigns")
-            wait_for_spinner_gone(page)
-
-            campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-            if campaign_card.count() > 0:
-                campaign_card.click()
-                wait_for_page_load(page)
-                click_button_by_aria(page, "Delete campaign")
-                page.wait_for_timeout(500)
-                confirm_dialog(page, "OK")
-                print("   [OK] Test campaign deleted")
-
             print_test_summary(
                 "CAMPAIGN JOIN",
                 [
@@ -129,6 +115,20 @@ def test_campaign_join():
             traceback.print_exc()
             return False
         finally:
+            if page is not None and campaign_name:
+                try:
+                    navigate_to(page, BASE_URL, "/campaigns")
+                    wait_for_spinner_gone(page)
+                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
+                    if card.count() > 0:
+                        card.click()
+                        wait_for_page_load(page)
+                        click_button_by_aria(page, "Delete campaign")
+                        page.wait_for_timeout(500)
+                        confirm_dialog(page, "OK")
+                        print("   [CLEANUP] Test campaign deleted")
+                except Exception as cleanup_err:
+                    print(f"   [CLEANUP WARN] {cleanup_err}")
             if context is not None:
                 context.close()
             browser.close()

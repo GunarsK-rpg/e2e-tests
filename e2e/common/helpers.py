@@ -100,30 +100,26 @@ def wait_for_spinner_gone(page: Page, timeout: int = 10000) -> None:
 # ========================================
 
 
-def fill_input(page: Page, label: str, value: str, wait_ms: int = 200) -> bool:
-    """Fill a q-input by its label text. Returns False if field not found."""
+def fill_input(page: Page, label: str, value: str, wait_ms: int = 200) -> None:
+    """Fill a q-input by its label text. Raises if field not found."""
     field = page.locator(FIELD_BY_LABEL.format(label=label)).first
     if field.count() == 0:
-        print(f"   [INFO] Input '{label}' not found")
-        return False
+        raise AssertionError(f"Input '{label}' not found")
     input_el = field.locator("input.q-field__native").first
     input_el.click()
     input_el.fill(value or "")
     page.wait_for_timeout(wait_ms)
-    return True
 
 
-def fill_textarea(page: Page, label: str, value: str, wait_ms: int = 200) -> bool:
-    """Fill a q-input[type=textarea] by its label text. Returns False if not found."""
+def fill_textarea(page: Page, label: str, value: str, wait_ms: int = 200) -> None:
+    """Fill a q-input[type=textarea] by its label text. Raises if not found."""
     field = page.locator(FIELD_BY_LABEL.format(label=label)).first
     if field.count() == 0:
-        print(f"   [INFO] Textarea '{label}' not found")
-        return False
+        raise AssertionError(f"Textarea '{label}' not found")
     textarea = field.locator("textarea.q-field__native").first
     textarea.click()
     textarea.fill(value or "")
     page.wait_for_timeout(wait_ms)
-    return True
 
 
 # ========================================
@@ -199,20 +195,19 @@ def click_finish(page: Page, wait_ms: int = 2000) -> None:
 # ========================================
 
 
-def select_first_card(page: Page, name: str, wait_ms: int = 300) -> bool:
-    """Click the first unselected SelectableCard (role=radio/checkbox)"""
+def select_first_card(page: Page, name: str, wait_ms: int = 300) -> None:
+    """Click the first unselected SelectableCard. Raises if none found."""
     cards = page.locator(SELECTABLE_CARD_UNSELECTED)
     if cards.count() > 0:
         cards.first.click()
         page.wait_for_timeout(wait_ms)
         print(f"   [OK] {name} selected")
-        return True
+        return
     all_cards = page.locator(SELECTABLE_CARD)
     if all_cards.count() > 0:
         print(f"   [OK] {name} already selected")
-        return True
-    print(f"   [INFO] No {name} cards found")
-    return False
+        return
+    raise AssertionError(f"No {name} cards found")
 
 
 # ========================================
