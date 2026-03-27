@@ -141,6 +141,18 @@ jobs:
           # Source RPG .env for VITE build args
           set -a; source rpg/infrastructure/.env; set +a
 
+          # Validate required VITE build args
+          missing=0
+          for var in VITE_PUBLIC_API_URL VITE_PUBLIC_AUTH_URL VITE_FILES_API_URL; do
+            if [ -z "${!var}" ]; then
+              echo "ERROR: $var is not set or empty"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
           # Build all 4 images in parallel with separate cache scopes
           docker buildx build \
             --cache-from type=gha,scope=rpg-public-api \
@@ -174,12 +186,16 @@ jobs:
           pid4=$!
 
           # Wait for all builds
+          names=("rpg-public-api" "rpg-public-web" "portfolio-auth-service" "portfolio-files-api")
+          pids=("$pid1" "$pid2" "$pid3" "$pid4")
           failed=0
-          for pid in "$pid1" "$pid2" "$pid3" "$pid4"; do
-            wait "$pid" || failed=1
+          for i in 0 1 2 3; do
+            if ! wait "${pids[$i]}"; then
+              echo "${names[$i]} build failed (pid ${pids[$i]})"
+              failed=1
+            fi
           done
           if [ "$failed" -eq 1 ]; then
-            echo "One or more image builds failed"
             exit 1
           fi
 
@@ -203,10 +219,22 @@ jobs:
           rpg_pid=$!
 
           # Wait for both stacks
-          wait $portfolio_pid || { echo "Portfolio services failed"; exit 1; }
-          echo "Portfolio services started"
-          wait $rpg_pid || { echo "RPG services failed"; exit 1; }
-          echo "RPG services started"
+          failed=0
+          if wait "$portfolio_pid"; then
+            echo "Portfolio services started"
+          else
+            echo "Portfolio services failed"
+            failed=1
+          fi
+          if wait "$rpg_pid"; then
+            echo "RPG services started"
+          else
+            echo "RPG services failed"
+            failed=1
+          fi
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
 
       # -- Health checks --
       - name: Wait for services to be healthy
