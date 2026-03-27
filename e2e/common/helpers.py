@@ -6,7 +6,7 @@ Selectors live here -- tests should call helpers, not build selectors.
 """
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 from playwright.sync_api import Locator, Page
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -220,28 +220,26 @@ def select_first_card(page: Page, name: str, wait_ms: int = 300) -> bool:
 # ========================================
 
 
-def click_increment(page: Page, name: str, wait_ms: int = 200) -> bool:
+def click_increment(page: Page, name: str, wait_ms: int = 200) -> None:
     """Click increment button by aria-label 'Increase {name}'"""
     btn = page.locator(BTN_INCREMENT.format(name=name)).first
     if btn.count() > 0:
         btn.click()
         page.wait_for_timeout(wait_ms)
         print(f"   [OK] Incremented {name}")
-        return True
-    print(f"   [INFO] Cannot increment {name}")
-    return False
+        return
+    raise AssertionError(f"Cannot increment {name}: button not found")
 
 
-def click_increment_rank(page: Page, name: str, wait_ms: int = 200) -> bool:
+def click_increment_rank(page: Page, name: str, wait_ms: int = 200) -> None:
     """Click increment button by aria-label 'Increase {name} rank'"""
     btn = page.locator(BTN_INCREMENT_RANK.format(name=name)).first
     if btn.count() > 0:
         btn.click()
         page.wait_for_timeout(wait_ms)
         print(f"   [OK] Incremented {name} rank")
-        return True
-    print(f"   [INFO] Cannot increment {name} rank")
-    return False
+        return
+    raise AssertionError(f"Cannot increment {name} rank: button not found")
 
 
 # ========================================
@@ -288,21 +286,19 @@ def dismiss_dialog(page: Page, button_label: str = "Cancel", wait_ms: int = 300)
 
 def open_dialog_and_select_first(
     page: Page, button_text: str, name: str, wait_ms: int = 500
-) -> bool:
+) -> None:
     """Click button to open dialog, select first listbox item, close dialog"""
     btn = page.locator(f'.q-btn:has-text("{button_text}")').first
     if btn.count() == 0:
-        print(f"   [INFO] {name} button not found")
-        return False
+        raise AssertionError(f"{name} button not found")
     btn.click()
     page.wait_for_timeout(wait_ms)
     items = page.locator(LISTBOX_ITEM)
-    if items.count() > 0:
-        items.first.click()
-        page.wait_for_timeout(300)
-        print(f"   [OK] {name} selected from list")
-    else:
-        print(f"   [INFO] No {name} list items found")
+    if items.count() == 0:
+        raise AssertionError(f"No {name} list items found")
+    items.first.click()
+    page.wait_for_timeout(300)
+    print(f"   [OK] {name} selected from list")
     # Close dialog if still open
     done_btn = page.locator(
         '.q-dialog .q-btn:has-text("Done"),' + ' .q-dialog .q-btn:has-text("Close")'
@@ -310,19 +306,17 @@ def open_dialog_and_select_first(
     if done_btn.count() > 0:
         done_btn.click()
         page.wait_for_timeout(300)
-    return True
 
 
-def click_first_listbox_item(page: Page, name: str, wait_ms: int = 300) -> bool:
+def click_first_listbox_item(page: Page, name: str, wait_ms: int = 300) -> None:
     """Click the first item in a q-list with role='option' (path/kit dialogs)"""
     items = page.locator(LISTBOX_ITEM)
     if items.count() > 0:
         items.first.click()
         page.wait_for_timeout(wait_ms)
         print(f"   [OK] {name} selected from list")
-        return True
-    print(f"   [INFO] No {name} list items found")
-    return False
+        return
+    raise AssertionError(f"No {name} list items found")
 
 
 # ========================================
@@ -330,20 +324,19 @@ def click_first_listbox_item(page: Page, name: str, wait_ms: int = 300) -> bool:
 # ========================================
 
 
-def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> bool:
+def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> None:
     """Click the first unchecked q-checkbox"""
     checkbox = page.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').first
     if checkbox.count() > 0:
         checkbox.click()
         page.wait_for_timeout(wait_ms)
         print(f"   [OK] {name} checked")
-        return True
+        return
     any_cb = page.locator(EXPERTISE_CHECKBOX).first
     if any_cb.count() > 0:
         print(f"   [OK] {name} already checked")
-        return True
-    print(f"   [INFO] No {name} checkboxes found")
-    return False
+        return
+    raise AssertionError(f"No {name} checkboxes found")
 
 
 # ========================================
@@ -351,20 +344,18 @@ def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> bool:
 # ========================================
 
 
-def navigate_to(page: Page, base_url: str, path: str, wait_ms: int = 500) -> None:
+def navigate_to(page: Page, base_url: str, path: str) -> None:
     """Navigate to a page and wait for load"""
     page.goto(f"{base_url}{path}")
     wait_for_page_load(page)
-    page.wait_for_timeout(wait_ms)
 
 
-def do_logout(page: Page, wait_ms: int = 1500) -> None:
+def do_logout(page: Page) -> None:
     """Open account menu and click Logout"""
     page.locator(BTN_ACCOUNT_MENU).first.click()
     page.wait_for_timeout(300)
     page.locator(MENU_LOGOUT).first.click()
     wait_for_page_load(page)
-    page.wait_for_timeout(wait_ms)
 
 
 # ========================================
@@ -372,47 +363,43 @@ def do_logout(page: Page, wait_ms: int = 1500) -> None:
 # ========================================
 
 
-def verify_text_visible(page: Page, text: str, timeout: int = 5000) -> bool:
-    """Assert text is visible on page"""
+def verify_text_visible(page: Page, text: str, timeout: int = 5000) -> None:
+    """Assert text is visible on page. Raises if not found."""
     element = page.locator(f'text="{text}"').first
     if element.count() > 0:
         expect(element).to_be_visible(timeout=timeout)
         print(f"   [OK] Text visible: {text}")
-        return True
-    print(f"   [INFO] Text not found: {text}")
-    return False
+        return
+    raise AssertionError(f"Text not found: {text}")
 
 
-def verify_url_contains(page: Page, path: str, description: Optional[str] = None) -> bool:
-    """Check current URL contains path"""
+def verify_url_contains(page: Page, path: str, description: Optional[str] = None) -> None:
+    """Assert current URL contains path. Raises if not."""
     current_url = page.url
     if path in current_url:
         msg = description or f"URL contains '{path}'"
         print(f"   [OK] {msg}: {current_url}")
-        return True
-    print(f"   [INFO] Expected '{path}' in URL, got: {current_url}")
-    return False
+        return
+    raise AssertionError(f"Expected '{path}' in URL, got: {current_url}")
 
 
-def verify_input_value(page: Page, value: str, name: str) -> bool:
-    """Check that an input element contains the expected value"""
+def verify_input_value(page: Page, value: str, name: str) -> None:
+    """Assert input element contains expected value. Raises if not found."""
     el = page.locator(f'input[value="{value}"]')
     if el.count() > 0:
         print(f"   [OK] {name}: {value}")
-        return True
-    print(f"   [INFO] {name} not found in any input")
-    return False
+        return
+    raise AssertionError(f"{name} not found in any input (expected value: {value})")
 
 
-def verify_element_exists(page: Page, selector: str, name: str) -> Tuple[bool, int]:
-    """Check if element exists and log result"""
+def verify_element_exists(page: Page, selector: str, name: str) -> int:
+    """Assert element exists. Returns count. Raises if not found."""
     elements = page.locator(selector)
     count = elements.count()
     if count > 0:
         print(f"   [OK] {name} visible")
-        return True, count
-    print(f"   [INFO] {name} not found")
-    return False, 0
+        return count
+    raise AssertionError(f"{name} not found (selector: {selector})")
 
 
 # ========================================

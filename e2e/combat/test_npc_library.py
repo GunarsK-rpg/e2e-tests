@@ -59,19 +59,16 @@ def test_npc_library():
 
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
 
             fill_input(page, "Campaign Name", campaign_name)
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
             print(f"   [OK] Campaign: {campaign_name}")
 
             # Step 2: Create NPC
             print("\n2. Creating NPC...")
             click_button(page, "Create NPC")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print("   [OK] NPC creation page opened")
 
             # Step 3: Fill NPC form (requires name, tier, type, size)
@@ -87,7 +84,6 @@ def test_npc_library():
             print("\n4. Saving NPC...")
             click_button(page, "Save")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print("   [OK] NPC saved")
 
             # Step 5: Search for NPC in virtual scroll list
@@ -109,7 +105,6 @@ def test_npc_library():
             print("\n6. Viewing NPC detail...")
             npc_item.click()
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
             print("   [OK] NPC detail loaded")
             take_screenshot(page, "npc_06_detail", "NPC detail")
 
@@ -136,7 +131,6 @@ def test_npc_library():
             click_button(page, "Archive")
             page.wait_for_timeout(500)
             confirm_dialog(page, "OK")
-            page.wait_for_timeout(1000)
             print("   [OK] NPC archived")
 
             take_screenshot(page, "npc_09_archived", "After archive")
@@ -150,11 +144,9 @@ def test_npc_library():
             if campaign_card.count() > 0:
                 campaign_card.click()
                 wait_for_page_load(page)
-                page.wait_for_timeout(500)
                 click_button_by_aria(page, "Delete campaign")
                 page.wait_for_timeout(500)
                 confirm_dialog(page, "OK")
-                page.wait_for_timeout(1000)
                 print("   [OK] Test campaign deleted")
 
             print_test_summary(

@@ -79,7 +79,6 @@ def test_register_flow():
             print("\n5. Submitting registration...")
             submit_form(page)
             wait_for_page_load(page)
-            page.wait_for_timeout(2000)
 
             if "/login" in page.url:
                 print("   [OK] Redirected to login")
@@ -96,7 +95,6 @@ def test_register_flow():
             fill_input(page, "Password", test_password)
             submit_form(page)
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
 
             if "/login" not in page.url:
                 print("   [OK] Login successful")

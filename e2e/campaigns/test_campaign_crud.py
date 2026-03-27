@@ -37,8 +37,6 @@ BASE_URL = config["web_url"]
 
 # Wait durations (ms) for UI transitions
 WAIT_SHORT = 500
-WAIT_MEDIUM = 1000
-WAIT_LONG = 1500
 
 
 def test_campaign_crud():
@@ -66,7 +64,6 @@ def test_campaign_crud():
             print("\n2. Creating campaign...")
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(WAIT_SHORT)
 
             fill_input(page, "Campaign Name", campaign_name)
             fill_textarea(page, "Description", f"Test campaign {unique_suffix}")
@@ -77,7 +74,6 @@ def test_campaign_crud():
             print("\n3. Saving campaign...")
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(WAIT_LONG)
             print("   [OK] Campaign created")
 
             # Step 4: Verify detail page
@@ -92,12 +88,10 @@ def test_campaign_crud():
             print("\n5. Editing campaign...")
             click_button_by_aria(page, "Edit campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(WAIT_SHORT)
 
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
             wait_for_page_load(page)
-            page.wait_for_timeout(WAIT_MEDIUM)
             print("   [OK] Campaign updated")
 
             # Step 6: Verify update
@@ -110,7 +104,6 @@ def test_campaign_crud():
             page.wait_for_timeout(WAIT_SHORT)
             confirm_dialog(page, "OK")
             wait_for_page_load(page)
-            page.wait_for_timeout(WAIT_LONG)
             print("   [OK] Campaign deleted")
 
             # Step 8: Verify redirect

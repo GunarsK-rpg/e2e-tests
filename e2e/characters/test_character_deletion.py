@@ -64,7 +64,6 @@ def test_character_deletion():
             last_card.click()
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(1000)
             verify_url_contains(page, "/characters/")
 
             # Step 3: Enter edit mode (CharacterHeader.vue: aria-label="Edit character")
@@ -93,7 +92,6 @@ def test_character_deletion():
             page.wait_for_timeout(300)
             confirm_dialog(page, "Delete")
             wait_for_page_load(page)
-            page.wait_for_timeout(2000)
             print("   [OK] Deletion confirmed")
 
             # Step 7: Verify dialog closed

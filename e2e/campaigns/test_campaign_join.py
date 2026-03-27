@@ -55,14 +55,12 @@ def test_campaign_join():
 
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
 
             fill_input(page, "Campaign Name", campaign_name)
             fill_textarea(page, "Description", "Join test campaign")
 
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
             print(f"   [OK] Campaign created: {campaign_name}")
 
             # Step 2: Get invite link
@@ -84,7 +82,6 @@ def test_campaign_join():
             else:
                 navigate_to(page, BASE_URL, "/join")
 
-            page.wait_for_timeout(1000)
             take_screenshot(page, "join_03_page", "Join page")
 
             # Step 4: Verify join page content
@@ -110,11 +107,9 @@ def test_campaign_join():
             if campaign_card.count() > 0:
                 campaign_card.click()
                 wait_for_page_load(page)
-                page.wait_for_timeout(500)
                 click_button_by_aria(page, "Delete campaign")
                 page.wait_for_timeout(500)
                 confirm_dialog(page, "OK")
-                page.wait_for_timeout(1000)
                 print("   [OK] Test campaign deleted")
 
             print_test_summary(

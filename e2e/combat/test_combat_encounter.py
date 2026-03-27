@@ -61,12 +61,10 @@ def test_combat_encounter():
 
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
 
             fill_input(page, "Campaign Name", campaign_name)
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
             print(f"   [OK] Campaign: {campaign_name}")
 
             # Step 2: Create combat
@@ -78,7 +76,6 @@ def test_combat_encounter():
             fill_input(page, "Name", combat_name)
             confirm_dialog(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print(f"   [OK] Combat created: {combat_name}")
 
             take_screenshot(page, "combat_02_created", "Combat created")
@@ -99,7 +96,6 @@ def test_combat_encounter():
                     npc_items.first.click()
                     page.wait_for_timeout(300)
                     confirm_dialog(page, "Add")
-                    page.wait_for_timeout(1000)
                     print("   [OK] NPC added")
                 else:
                     print("   [INFO] No NPCs available")
@@ -137,11 +133,9 @@ def test_combat_encounter():
             if campaign_card.count() > 0:
                 campaign_card.click()
                 wait_for_page_load(page)
-                page.wait_for_timeout(500)
                 click_button_by_aria(page, "Delete campaign")
                 page.wait_for_timeout(500)
                 confirm_dialog(page, "OK")
-                page.wait_for_timeout(1000)
                 print("   [OK] Test campaign deleted")
 
             take_screenshot(page, "combat_08_done", "Test complete")
