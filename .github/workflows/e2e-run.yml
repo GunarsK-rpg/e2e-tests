@@ -2,14 +2,10 @@ name: E2E Tests
 
 on:
   workflow_call:
-    inputs:
-      trigger-repo:
-        description: 'Which repo triggered this (database, public-api, or public-web)'
-        required: true
-        type: string
 
 env:
   PYTHON_VERSION: '3.12'
+  TRIGGER_REPO: ${{ github.event.repository.name }}
   RPG_WEB_URL: https://localhost:8543
   RPG_API_URL: https://localhost:8543/api/v1
   AUTH_URL: https://localhost:8443/auth/v1
@@ -22,28 +18,28 @@ jobs:
 
     steps:
       # -- Checkout triggering repo (PR branch) --
-      - name: Checkout ${{ inputs.trigger-repo }} (trigger)
+      - name: Checkout ${{ env.TRIGGER_REPO }} (trigger)
         uses: actions/checkout@v6
         with:
-          path: rpg/${{ inputs.trigger-repo }}
+          path: rpg/${{ env.TRIGGER_REPO }}
 
       # -- Checkout RPG repos (default branch, skip if trigger) --
       - name: Checkout database
-        if: inputs.trigger-repo != 'database'
+        if: env.TRIGGER_REPO != 'database'
         uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/database
           path: rpg/database
 
       - name: Checkout public-api
-        if: inputs.trigger-repo != 'public-api'
+        if: env.TRIGGER_REPO != 'public-api'
         uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/public-api
           path: rpg/public-api
 
       - name: Checkout public-web
-        if: inputs.trigger-repo != 'public-web'
+        if: env.TRIGGER_REPO != 'public-web'
         uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/public-web
@@ -63,6 +59,7 @@ jobs:
           token: ${{ secrets.E2E_ACCESS_TOKEN }}
 
       - name: Checkout e2e-tests
+        if: env.TRIGGER_REPO != 'e2e-tests'
         uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/e2e-tests
@@ -157,8 +154,6 @@ jobs:
         working-directory: rpg/e2e-tests
         run: |
           cat > .env << 'EOF'
-          TEST_USERNAME=rpg-e2e-test@example.com
-          TEST_PASSWORD=E2eTestPassword123!
           TEST_HEADLESS=true
           TEST_TIMEOUT=60000
           TEST_BROWSER=chromium
