@@ -26,6 +26,7 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_text_visible,
+    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -43,6 +44,7 @@ def test_campaign_join():
 
         page = None
         context = None
+        campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -124,7 +126,7 @@ def test_campaign_join():
                         card.click()
                         wait_for_page_load(page)
                         click_button_by_aria(page, "Delete campaign")
-                        page.wait_for_timeout(500)
+                        wait_for_dialog(page)
                         confirm_dialog(page, "OK")
                         print("   [CLEANUP] Test campaign deleted")
                 except Exception as cleanup_err:
