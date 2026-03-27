@@ -99,6 +99,7 @@ def test_npc_library():
             if npc_item.count() > 0:
                 print(f"   [OK] NPC found: {npc_name}")
             else:
+                take_screenshot(page, "npc_04_not_found", "NPC not found")
                 print(f"   [FAIL] NPC not found: {npc_name}")
                 return False
 

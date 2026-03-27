@@ -69,12 +69,17 @@ def wait_for_page_load(page: Page) -> None:
 
 
 def take_screenshot(page: Page, name: str, description: str = "") -> str:
-    """Take a screenshot with consistent naming"""
+    """Take a screenshot with consistent naming, grouped by test prefix"""
+    import re
+
     from e2e.common.config import get_config
 
     screenshot_dir = Path(get_config()["screenshot_dir"])
-    screenshot_dir.mkdir(parents=True, exist_ok=True)
-    path = screenshot_dir / f"test_{name}.png"
+    match = re.match(r"^([a-z_]+?)_\d", name)
+    subfolder = match.group(1) if match else "misc"
+    target_dir = screenshot_dir / subfolder
+    target_dir.mkdir(parents=True, exist_ok=True)
+    path = target_dir / f"{name}.png"
     page.screenshot(path=str(path))
     if description:
         print(f"   [SCREENSHOT] {description}: {path}")

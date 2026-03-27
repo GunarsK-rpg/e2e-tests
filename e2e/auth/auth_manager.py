@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 from e2e.common.config import get_config
-from e2e.common.helpers import click_button, fill_input, wait_for_page_load
+from e2e.common.helpers import click_button, fill_input, take_screenshot, wait_for_page_load
 
 AUTH_DIR = Path(__file__).parent / ".auth"
 TEST_USER_PATH = AUTH_DIR / "test_user.json"
@@ -115,6 +115,7 @@ class AuthManager:
             print("   [OK] Login successful")
             return True
 
+        take_screenshot(page, "auth_login_fail", "Login failed")
         print("   [FAIL] Login failed - still on login page")
         return False
 

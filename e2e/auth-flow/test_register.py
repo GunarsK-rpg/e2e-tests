@@ -101,6 +101,7 @@ def test_register_flow():
             if "/login" not in page.url:
                 print("   [OK] Login successful")
             else:
+                take_screenshot(page, "register_06_login_fail", "Login failed")
                 print("   [FAIL] Could not login with new account")
                 return False
 
