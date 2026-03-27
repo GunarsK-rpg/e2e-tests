@@ -39,6 +39,12 @@ jobs:
       - name: Lint with flake8
         run: flake8 .
 
+      - name: Run pylint
+        run: python -m pylint e2e/ run_tests.py
+
+      - name: Run mypy
+        run: python -m mypy e2e/common e2e/auth run_tests.py
+
   # Job 2: YAML Lint
   yaml-lint:
     name: YAML Lint
@@ -183,11 +189,28 @@ jobs:
         run: |
           python -m compileall e2e/
 
+  # Job 7: Secret scanning with TruffleHog
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@v3.94.0
+        with:
+          path: ./
+          base: ''
+          head: ${{ github.ref_name }}
+
   # Summary job - require all to pass
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [code-quality, yaml-lint, workflow-lint, markdown-lint, test-config, test-dry-run]
+    needs: [code-quality, yaml-lint, workflow-lint, markdown-lint, test-config, test-dry-run, secret-scan]
     if: always()
     steps:
       - name: Check all jobs status

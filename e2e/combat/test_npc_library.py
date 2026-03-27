@@ -28,6 +28,7 @@ from e2e.common.helpers import (
     select_first_option,
     take_screenshot,
     verify_text_visible,
+    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -45,6 +46,7 @@ def test_npc_library():
 
         page = None
         context = None
+        campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -59,19 +61,16 @@ def test_npc_library():
 
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
 
             fill_input(page, "Campaign Name", campaign_name)
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
             print(f"   [OK] Campaign: {campaign_name}")
 
             # Step 2: Create NPC
             print("\n2. Creating NPC...")
             click_button(page, "Create NPC")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print("   [OK] NPC creation page opened")
 
             # Step 3: Fill NPC form (requires name, tier, type, size)
@@ -87,7 +86,6 @@ def test_npc_library():
             print("\n4. Saving NPC...")
             click_button(page, "Save")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print("   [OK] NPC saved")
 
             # Step 5: Search for NPC in virtual scroll list
@@ -109,7 +107,6 @@ def test_npc_library():
             print("\n6. Viewing NPC detail...")
             npc_item.click()
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
             print("   [OK] NPC detail loaded")
             take_screenshot(page, "npc_06_detail", "NPC detail")
 
@@ -127,35 +124,16 @@ def test_npc_library():
 
             # Step 8: Verify updated name (stays on detail page after edit-save)
             print("\n8. Verifying update...")
-            assert verify_text_visible(
-                page, updated_name
-            ), f"Updated name '{updated_name}' not visible"
+            verify_text_visible(page, updated_name)
 
             # Step 9: Archive NPC
             print("\n9. Archiving NPC...")
             click_button(page, "Archive")
             page.wait_for_timeout(500)
             confirm_dialog(page, "OK")
-            page.wait_for_timeout(1000)
             print("   [OK] NPC archived")
 
             take_screenshot(page, "npc_09_archived", "After archive")
-
-            # Step 10: Cleanup - delete test campaign
-            print("\n10. Cleaning up...")
-            navigate_to(page, BASE_URL, "/campaigns")
-            wait_for_spinner_gone(page)
-
-            campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-            if campaign_card.count() > 0:
-                campaign_card.click()
-                wait_for_page_load(page)
-                page.wait_for_timeout(500)
-                click_button_by_aria(page, "Delete campaign")
-                page.wait_for_timeout(500)
-                confirm_dialog(page, "OK")
-                page.wait_for_timeout(1000)
-                print("   [OK] Test campaign deleted")
 
             print_test_summary(
                 "NPC LIBRARY",
@@ -181,6 +159,20 @@ def test_npc_library():
             traceback.print_exc()
             return False
         finally:
+            if page is not None and campaign_name:
+                try:
+                    navigate_to(page, BASE_URL, "/campaigns")
+                    wait_for_spinner_gone(page)
+                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
+                    if card.count() > 0:
+                        card.click()
+                        wait_for_page_load(page)
+                        click_button_by_aria(page, "Delete campaign")
+                        wait_for_dialog(page)
+                        confirm_dialog(page, "OK")
+                        print("   [CLEANUP] Test campaign deleted")
+                except Exception as cleanup_err:
+                    print(f"   [CLEANUP WARN] {cleanup_err}")
             if context is not None:
                 context.close()
             browser.close()

@@ -72,7 +72,6 @@ def test_login_flow():
             print("\n3. Testing unauthorized redirect...")
             page.goto(f"{BASE_URL}/")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             assert "/login" in page.url, f"Expected redirect to /login, got {page.url}"
             print("   [OK] Redirected to login")
 
@@ -87,7 +86,6 @@ def test_login_flow():
             fill_input(page, "Password", password)
             submit_form(page)
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
 
             if "/login" not in page.url:
                 print(f"   [OK] Login successful: {page.url}")
@@ -98,13 +96,12 @@ def test_login_flow():
 
             # Step 5: Verify landing page
             print("\n5. Verifying landing page...")
-            assert verify_text_visible(page, "My Characters"), "Landing page text not visible"
+            verify_text_visible(page, "My Characters")
 
             # Step 6: Session persistence
             print("\n6. Testing session persistence...")
             page.reload()
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             if "/login" not in page.url:
                 print("   [OK] Session persisted")
             else:
@@ -122,7 +119,6 @@ def test_login_flow():
             print("\n8. Verifying access denied...")
             page.goto(f"{BASE_URL}/")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             assert "/login" in page.url, f"Expected /login after logout, got {page.url}"
             print("   [OK] Access denied")
 

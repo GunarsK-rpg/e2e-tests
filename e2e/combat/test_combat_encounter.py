@@ -48,6 +48,7 @@ def test_combat_encounter():
 
         page = None
         context = None
+        campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
@@ -61,12 +62,10 @@ def test_combat_encounter():
 
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
-            page.wait_for_timeout(500)
 
             fill_input(page, "Campaign Name", campaign_name)
             click_button(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1500)
             print(f"   [OK] Campaign: {campaign_name}")
 
             # Step 2: Create combat
@@ -78,16 +77,13 @@ def test_combat_encounter():
             fill_input(page, "Name", combat_name)
             confirm_dialog(page, "Create")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             print(f"   [OK] Combat created: {combat_name}")
 
             take_screenshot(page, "combat_02_created", "Combat created")
 
             # Step 3: Verify combat detail (name is in a q-input, not a text node)
             print("\n3. Verifying combat detail...")
-            assert verify_input_value(
-                page, combat_name, "Combat name"
-            ), f"Combat '{combat_name}' not found"
+            verify_input_value(page, combat_name, "Combat name")
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
             # Step 4: Add NPC via dialog (items use role="listitem", not "option")
@@ -99,7 +95,6 @@ def test_combat_encounter():
                     npc_items.first.click()
                     page.wait_for_timeout(300)
                     confirm_dialog(page, "Add")
-                    page.wait_for_timeout(1000)
                     print("   [OK] NPC added")
                 else:
                     print("   [INFO] No NPCs available")
@@ -128,22 +123,6 @@ def test_combat_encounter():
 
             take_screenshot(page, "combat_07_state", "Combat state")
 
-            # Step 8: Cleanup - delete test campaign
-            print("\n8. Cleaning up...")
-            navigate_to(page, BASE_URL, "/campaigns")
-            wait_for_spinner_gone(page)
-
-            campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-            if campaign_card.count() > 0:
-                campaign_card.click()
-                wait_for_page_load(page)
-                page.wait_for_timeout(500)
-                click_button_by_aria(page, "Delete campaign")
-                page.wait_for_timeout(500)
-                confirm_dialog(page, "OK")
-                page.wait_for_timeout(1000)
-                print("   [OK] Test campaign deleted")
-
             take_screenshot(page, "combat_08_done", "Test complete")
 
             print_test_summary(
@@ -168,6 +147,20 @@ def test_combat_encounter():
             traceback.print_exc()
             return False
         finally:
+            if page is not None and campaign_name:
+                try:
+                    navigate_to(page, BASE_URL, "/campaigns")
+                    wait_for_spinner_gone(page)
+                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
+                    if card.count() > 0:
+                        card.click()
+                        wait_for_page_load(page)
+                        click_button_by_aria(page, "Delete campaign")
+                        wait_for_dialog(page)
+                        confirm_dialog(page, "OK")
+                        print("   [CLEANUP] Test campaign deleted")
+                except Exception as cleanup_err:
+                    print(f"   [CLEANUP WARN] {cleanup_err}")
             if context is not None:
                 context.close()
             browser.close()

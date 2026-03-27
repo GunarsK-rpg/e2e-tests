@@ -153,9 +153,7 @@ def test_character_creation():
             print("\n10. Review & Finish...")
             wait_for_spinner_gone(page)
 
-            assert verify_text_visible(
-                page, character_name
-            ), f"Character '{character_name}' not on review"
+            verify_text_visible(page, character_name)
             take_screenshot(page, "cc_10_review", "Review")
 
             click_finish(page)
@@ -163,9 +161,7 @@ def test_character_creation():
             # Verify redirect to character sheet
             print("\n11. Verifying character sheet...")
             verify_url_contains(page, "/characters/")
-            assert verify_text_visible(
-                page, character_name
-            ), f"Character '{character_name}' not on sheet"
+            verify_text_visible(page, character_name)
             take_screenshot(page, "cc_11_sheet", "Character sheet")
 
             print_test_summary(
