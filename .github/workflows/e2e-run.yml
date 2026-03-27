@@ -12,6 +12,7 @@ env:
   RPG_WEB_URL: https://localhost:8543
   RPG_API_URL: https://localhost:8543/api/v1
   AUTH_URL: https://localhost:8443/auth/v1
+  DOCKER_BUILDKIT: 1
 
 jobs:
   e2e:
@@ -127,20 +128,85 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Start services --
-      - name: Start portfolio services
-        working-directory: portfolio/infrastructure
-        run: |
-          docker compose up -d --no-deps traefik
-          docker compose up minio-setup
-          docker compose up -d auth-service files-api
-          echo "Portfolio services starting..."
+      # -- Docker build cache --
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          driver-opts: network=host
 
-      - name: Start RPG services
-        working-directory: rpg/infrastructure
+      # -- Build images (parallel, with GHA cache) --
+      - name: Build Docker images
         run: |
-          docker compose up -d --build
-          echo "RPG services starting..."
+          # Source RPG .env for VITE build args
+          set -a; source rpg/infrastructure/.env; set +a
+
+          # Build all 4 images in parallel with separate cache scopes
+          docker buildx build \
+            --cache-from type=gha,scope=rpg-public-api \
+            --cache-to type=gha,scope=rpg-public-api,mode=max \
+            --load -t rpg-public-api \
+            -f rpg/public-api/Dockerfile rpg/public-api &
+          pid1=$!
+
+          docker buildx build \
+            --cache-from type=gha,scope=rpg-public-web \
+            --cache-to type=gha,scope=rpg-public-web,mode=max \
+            --load -t rpg-public-web \
+            --build-arg VITE_API_URL="$VITE_PUBLIC_API_URL" \
+            --build-arg VITE_AUTH_URL="$VITE_PUBLIC_AUTH_URL" \
+            --build-arg VITE_FILES_API_URL="$VITE_FILES_API_URL" \
+            -f rpg/public-web/Dockerfile rpg/public-web &
+          pid2=$!
+
+          docker buildx build \
+            --cache-from type=gha,scope=portfolio-auth-service \
+            --cache-to type=gha,scope=portfolio-auth-service,mode=max \
+            --load -t infrastructure-auth-service \
+            -f portfolio/auth-service/Dockerfile portfolio/auth-service &
+          pid3=$!
+
+          docker buildx build \
+            --cache-from type=gha,scope=portfolio-files-api \
+            --cache-to type=gha,scope=portfolio-files-api,mode=max \
+            --load -t infrastructure-files-api \
+            -f portfolio/files-api/Dockerfile portfolio/files-api &
+          pid4=$!
+
+          # Wait for all builds
+          failed=0
+          for pid in $pid1 $pid2 $pid3 $pid4; do
+            wait $pid || failed=1
+          done
+          if [ "$failed" -eq 1 ]; then
+            echo "One or more image builds failed"
+            exit 1
+          fi
+
+      # -- Start services (parallel, using pre-built images) --
+      - name: Start services
+        run: |
+          # Start portfolio services in background
+          (
+            cd portfolio/infrastructure
+            docker compose up -d --no-deps traefik
+            docker compose up minio-setup
+            docker compose up -d --no-build auth-service files-api
+          ) &
+          portfolio_pid=$!
+
+          # Start RPG services in background
+          (
+            cd rpg/infrastructure
+            docker compose up -d --no-build
+          ) &
+          rpg_pid=$!
+
+          # Wait for both stacks
+          wait $portfolio_pid || { echo "Portfolio services failed"; exit 1; }
+          echo "Portfolio services started"
+          wait $rpg_pid || { echo "RPG services failed"; exit 1; }
+          echo "RPG services started"
 
       # -- Health checks --
       - name: Wait for services to be healthy
