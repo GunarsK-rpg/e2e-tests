@@ -356,6 +356,7 @@ def do_logout(page: Page) -> None:
     page.wait_for_timeout(300)
     page.locator(MENU_LOGOUT).first.click()
     wait_for_page_load(page)
+    page.wait_for_url("**/login**", timeout=10000)
 
 
 # ========================================

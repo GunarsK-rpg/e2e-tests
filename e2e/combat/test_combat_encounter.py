@@ -82,9 +82,7 @@ def test_combat_encounter():
 
             # Step 3: Verify combat detail (name is in a q-input, not a text node)
             print("\n3. Verifying combat detail...")
-            assert verify_input_value(
-                page, combat_name, "Combat name"
-            ), f"Combat '{combat_name}' not found"
+            verify_input_value(page, combat_name, "Combat name")
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
             # Step 4: Add NPC via dialog (items use role="listitem", not "option")

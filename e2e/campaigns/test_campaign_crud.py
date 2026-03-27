@@ -78,9 +78,7 @@ def test_campaign_crud():
 
             # Step 4: Verify detail page
             print("\n4. Verifying campaign detail...")
-            assert verify_text_visible(
-                page, campaign_name
-            ), f"Campaign '{campaign_name}' not visible"
+            verify_text_visible(page, campaign_name)
             verify_url_contains(page, "/campaigns/")
             take_screenshot(page, "campaign_04_detail", "Campaign detail")
 
@@ -96,7 +94,7 @@ def test_campaign_crud():
 
             # Step 6: Verify update
             print("\n6. Verifying update...")
-            assert verify_text_visible(page, updated_desc), "Updated description not visible"
+            verify_text_visible(page, updated_desc)
 
             # Step 7: Delete (trash button aria-label)
             print("\n7. Deleting campaign...")

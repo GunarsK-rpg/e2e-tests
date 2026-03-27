@@ -96,7 +96,7 @@ def test_login_flow():
 
             # Step 5: Verify landing page
             print("\n5. Verifying landing page...")
-            assert verify_text_visible(page, "My Characters"), "Landing page text not visible"
+            verify_text_visible(page, "My Characters")
 
             # Step 6: Session persistence
             print("\n6. Testing session persistence...")

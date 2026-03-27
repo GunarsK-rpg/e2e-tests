@@ -62,6 +62,7 @@ def test_character_deletion():
             # Step 2: Open character sheet
             print("\n2. Opening character sheet...")
             last_card.click()
+            page.wait_for_url("**/characters/**", timeout=10000)
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             verify_url_contains(page, "/characters/")
