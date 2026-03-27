@@ -388,14 +388,16 @@ def verify_input_value(page: Page, value: str, name: str) -> None:
     raise AssertionError(f"{name} not found in any input (expected value: {value})")
 
 
-def verify_element_exists(page: Page, selector: str, name: str) -> int:
-    """Assert element exists. Returns count. Raises if not found."""
-    elements = page.locator(selector)
-    count = elements.count()
-    if count > 0:
-        print(f"   [OK] {name} visible")
-        return count
-    raise AssertionError(f"{name} not found (selector: {selector})")
+def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 10000) -> int:
+    """Wait for element to appear, then return count. Raises if not found."""
+    loc = page.locator(selector)
+    try:
+        loc.first.wait_for(state="visible", timeout=timeout)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"{name} not found (selector: {selector})") from exc
+    count = loc.count()
+    print(f"   [OK] {name} visible")
+    return count
 
 
 # ========================================
