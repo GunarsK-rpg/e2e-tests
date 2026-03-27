@@ -147,7 +147,7 @@ jobs:
           echo "Starting parallel health checks..."
           timeout 180 bash -c 'until curl -sf http://localhost:8084/health > /dev/null 2>&1; do sleep 2; done' & pid1=$!
           timeout 180 bash -c 'until curl -sf http://localhost:8085/health > /dev/null 2>&1; do sleep 2; done' & pid2=$!
-          timeout 180 bash -c 'until curl -skf ${{ env.RPG_API_URL }}/health > /dev/null 2>&1; do sleep 2; done' & pid3=$!
+          timeout 180 bash -c 'until curl -sf http://localhost:8182/health > /dev/null 2>&1; do sleep 2; done' & pid3=$!
           timeout 180 bash -c 'until curl -skf ${{ env.RPG_WEB_URL }}/ > /dev/null 2>&1; do sleep 2; done' & pid4=$!
           failed=0
           labels=(auth-service files-api rpg-api rpg-web)
@@ -195,7 +195,7 @@ jobs:
           retention-days: 7
 
       - name: Show docker logs on failure
-        if: steps.e2e_tests.outcome == 'failure'
+        if: failure()
         run: |
           echo "=== RPG Container Status ==="
           (cd rpg/infrastructure && docker compose ps -a)
@@ -217,6 +217,18 @@ jobs:
           echo ""
           echo "=== Portfolio files-api logs ==="
           (cd portfolio/infrastructure && docker compose logs files-api --tail=50)
+          echo ""
+          echo "=== Portfolio flyway logs ==="
+          (cd portfolio/infrastructure && docker compose logs flyway --tail=50)
+          echo ""
+          echo "=== Portfolio minio logs ==="
+          (cd portfolio/infrastructure && docker compose logs minio --tail=50)
+          echo ""
+          echo "=== RPG flyway logs ==="
+          (cd rpg/infrastructure && docker compose logs flyway --tail=50)
+          echo ""
+          echo "=== RPG postgres logs ==="
+          (cd rpg/infrastructure && docker compose logs postgres --tail=50)
 
       - name: Stop services
         if: always()
