@@ -118,6 +118,7 @@ def test_character_deletion():
             if remaining.count() == 0:
                 print(f"   [OK] '{card_name}' no longer in character list")
             else:
+                take_screenshot(page, "delete_09_still_visible", "Still visible")
                 print(f"   [FAIL] '{card_name}' still visible in list")
                 return False
 

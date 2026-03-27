@@ -92,6 +92,7 @@ def test_login_flow():
             if "/login" not in page.url:
                 print(f"   [OK] Login successful: {page.url}")
             else:
+                take_screenshot(page, "login_04_fail", "Login failed")
                 print("   [FAIL] Still on login page")
                 return False
 
@@ -107,6 +108,7 @@ def test_login_flow():
             if "/login" not in page.url:
                 print("   [OK] Session persisted")
             else:
+                take_screenshot(page, "login_06_session_lost", "Session lost")
                 print("   [FAIL] Session lost")
                 return False
 
