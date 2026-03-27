@@ -142,16 +142,16 @@ jobs:
       - name: Wait for services to be healthy
         run: |
           echo "Starting parallel health checks..."
-          timeout 180 bash -c 'until curl -sf http://localhost:8084/health; do sleep 2; done' & pid1=$!
-          timeout 180 bash -c 'until curl -sf http://localhost:8085/health; do sleep 2; done' & pid2=$!
-          timeout 180 bash -c 'until curl -skf ${{ env.RPG_API_URL }}/health; do sleep 2; done' & pid3=$!
-          timeout 180 bash -c 'until curl -skf ${{ env.RPG_WEB_URL }}/; do sleep 2; done' & pid4=$!
+          timeout 180 bash -c 'until curl -sf http://localhost:8084/health > /dev/null 2>&1; do sleep 2; done' & pid1=$!
+          timeout 180 bash -c 'until curl -sf http://localhost:8085/health > /dev/null 2>&1; do sleep 2; done' & pid2=$!
+          timeout 180 bash -c 'until curl -skf ${{ env.RPG_API_URL }}/health > /dev/null 2>&1; do sleep 2; done' & pid3=$!
+          timeout 180 bash -c 'until curl -skf ${{ env.RPG_WEB_URL }}/ > /dev/null 2>&1; do sleep 2; done' & pid4=$!
           failed=0
-          for pid in $pid1 $pid2 $pid3 $pid4; do
-            wait "$pid" || failed=1
-          done
+          wait "$pid1" && echo "auth-service: healthy" || { echo "auth-service: FAILED"; failed=1; }
+          wait "$pid2" && echo "files-api: healthy" || { echo "files-api: FAILED"; failed=1; }
+          wait "$pid3" && echo "rpg-api: healthy" || { echo "rpg-api: FAILED"; failed=1; }
+          wait "$pid4" && echo "rpg-web: healthy" || { echo "rpg-web: FAILED"; failed=1; }
           if [ "$failed" -eq 1 ]; then
-            echo "One or more health checks failed!"
             exit 1
           fi
           echo "All services are healthy!"
