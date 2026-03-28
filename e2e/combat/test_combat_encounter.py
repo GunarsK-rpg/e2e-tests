@@ -19,8 +19,8 @@ from playwright.sync_api import sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    cleanup_test_campaign,
     click_button,
-    click_button_by_aria,
     click_button_if_visible,
     confirm_dialog,
     dismiss_dialog,
@@ -31,6 +31,7 @@ from e2e.common.helpers import (
     verify_element_exists,
     verify_input_value,
     wait_for_dialog,
+    wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -89,10 +90,9 @@ def test_combat_encounter():
             # Step 4: Add NPC via dialog (items use role="listitem", not "option")
             print("\n4. Adding NPC to combat...")
             if click_button_if_visible(page, "Add Enemy"):
-                page.wait_for_timeout(500)
-                npc_items = page.locator(".q-dialog .q-item--clickable")
-                if npc_items.count() > 0:
-                    npc_items.first.click()
+                npc_items = ".q-dialog .q-item--clickable"
+                if wait_for_element(page, npc_items) > 0:
+                    page.locator(npc_items).first.click()
                     page.wait_for_timeout(300)
                     confirm_dialog(page, "Add")
                     print("   [OK] NPC added")
@@ -148,19 +148,7 @@ def test_combat_encounter():
             return False
         finally:
             if page is not None and campaign_name:
-                try:
-                    navigate_to(page, BASE_URL, "/campaigns")
-                    wait_for_spinner_gone(page)
-                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-                    if card.count() > 0:
-                        card.click()
-                        wait_for_page_load(page)
-                        click_button_by_aria(page, "Delete campaign")
-                        wait_for_dialog(page)
-                        confirm_dialog(page, "OK")
-                        print("   [CLEANUP] Test campaign deleted")
-                except Exception as cleanup_err:
-                    print(f"   [CLEANUP WARN] {cleanup_err}")
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()

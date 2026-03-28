@@ -16,9 +16,8 @@ from playwright.sync_api import sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    cleanup_test_campaign,
     click_button,
-    click_button_by_aria,
-    confirm_dialog,
     fill_input,
     fill_textarea,
     navigate_to,
@@ -26,7 +25,6 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_text_visible,
-    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -68,28 +66,23 @@ def test_campaign_join():
             # Step 2: Get invite link
             print("\n2. Getting invite link...")
             invite_link = page.locator('a[href*="/join/"]').first
-            join_url = None
-            if invite_link.count() > 0:
-                join_url = invite_link.get_attribute("href")
-                print(f"   [OK] Invite link: {join_url}")
-            else:
-                print("   [INFO] Invite link not found")
+            invite_link.wait_for(state="visible", timeout=10000)
+            join_url = invite_link.get_attribute("href")
+            print(f"   [OK] Invite link: {join_url}")
 
             take_screenshot(page, "join_02_detail", "Campaign detail")
 
             # Step 3: Navigate to join page
             print("\n3. Testing join page...")
-            if join_url:
-                navigate_to(page, BASE_URL, join_url)
-            else:
-                navigate_to(page, BASE_URL, "/join")
+            navigate_to(page, BASE_URL, join_url)
+            wait_for_page_load(page)
+            wait_for_spinner_gone(page)
 
             take_screenshot(page, "join_03_page", "Join page")
 
             # Step 4: Verify join page content
             print("\n4. Verifying join page...")
-            if join_url:
-                verify_text_visible(page, campaign_name)
+            verify_text_visible(page, campaign_name)
 
             verify_element_exists(
                 page, '.q-btn:has-text("Create Character")', "Create Character button"
@@ -118,19 +111,7 @@ def test_campaign_join():
             return False
         finally:
             if page is not None and campaign_name:
-                try:
-                    navigate_to(page, BASE_URL, "/campaigns")
-                    wait_for_spinner_gone(page)
-                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-                    if card.count() > 0:
-                        card.click()
-                        wait_for_page_load(page)
-                        click_button_by_aria(page, "Delete campaign")
-                        wait_for_dialog(page)
-                        confirm_dialog(page, "OK")
-                        print("   [CLEANUP] Test campaign deleted")
-                except Exception as cleanup_err:
-                    print(f"   [CLEANUP WARN] {cleanup_err}")
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()

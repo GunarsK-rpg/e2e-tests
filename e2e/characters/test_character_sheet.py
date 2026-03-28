@@ -23,6 +23,7 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_url_contains,
+    wait_for_element,
     wait_for_spinner_gone,
 )
 
@@ -63,15 +64,13 @@ def test_character_sheet():
 
             # Step 2: Click first character card
             print("\n2. Selecting character...")
-            cards = page.locator(HERO_CARD)
-            if cards.count() == 0:
+            if wait_for_element(page, HERO_CARD) == 0:
                 print("   [SKIP] No characters found")
                 return True
 
-            cards.first.click()
+            page.locator(HERO_CARD).first.click()
             page.wait_for_load_state("networkidle")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(1000)
 
             verify_url_contains(page, "/characters/")
             verify_element_exists(page, ".text-h5.text-heading", "Character name")
@@ -79,13 +78,12 @@ def test_character_sheet():
 
             # Step 3: Verify Stats tab is active by default
             print("\n3. Verifying Stats tab (default)...")
-            active_tab = page.locator(".q-tab--active .q-tab__label").first
-            if active_tab.count() > 0:
-                tab_text = active_tab.inner_text()
-                assert tab_text.upper() == "STATS", f"Expected active tab 'Stats', got '{tab_text}'"
-                print(f"   [OK] Active tab: {tab_text}")
-            else:
-                raise AssertionError("No default active tab found: '.q-tab--active .q-tab__label'")
+            active_tab_selector = ".q-tab--active .q-tab__label"
+            if wait_for_element(page, active_tab_selector) == 0:
+                raise AssertionError("No default active tab found")
+            tab_text = page.locator(active_tab_selector).first.inner_text()
+            assert tab_text.upper() == "STATS", f"Expected active tab 'Stats', got '{tab_text}'"
+            print(f"   [OK] Active tab: {tab_text}")
 
             # Step 4+: Navigate through remaining tabs
             for i, tab_label in enumerate(SHEET_TABS, start=4):

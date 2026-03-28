@@ -161,14 +161,18 @@ def click_button_by_aria(page: Page, aria_label: str, wait_ms: int = 200) -> Non
     page.wait_for_timeout(wait_ms)
 
 
-def click_button_if_visible(page: Page, label: str, wait_ms: int = 200) -> bool:
-    """Click a q-btn if it exists, return whether it was clicked"""
+def click_button_if_visible(
+    page: Page, label: str, timeout: int = 3000, wait_ms: int = 200
+) -> bool:
+    """Wait for q-btn to appear, click if found. Returns whether clicked."""
     btn = page.locator(f'.q-btn:has-text("{label}")').first
-    if btn.count() > 0:
-        btn.click()
-        page.wait_for_timeout(wait_ms)
-        return True
-    return False
+    try:
+        btn.wait_for(state="visible", timeout=timeout)
+    except PlaywrightTimeoutError:
+        return False
+    btn.click()
+    page.wait_for_timeout(wait_ms)
+    return True
 
 
 # ========================================
@@ -359,6 +363,16 @@ def do_logout(page: Page) -> None:
 # ========================================
 
 
+def wait_for_element(page: Page, selector: str, timeout: int = 5000) -> int:
+    """Wait for element to appear, return count. Returns 0 on timeout (no raise)."""
+    loc = page.locator(selector)
+    try:
+        loc.first.wait_for(state="visible", timeout=timeout)
+    except PlaywrightTimeoutError:
+        return 0
+    return loc.count()
+
+
 def verify_text_visible(page: Page, text: str, timeout: int = 5000) -> None:
     """Assert text is visible on page. Raises if not found."""
     element = page.locator(f'text="{text}"').first
@@ -398,6 +412,28 @@ def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 1
     count = loc.count()
     print(f"   [OK] {name} visible")
     return count
+
+
+# ========================================
+# CLEANUP HELPERS
+# ========================================
+
+
+def cleanup_test_campaign(page: Page, base_url: str, campaign_name: str) -> None:
+    """Navigate to campaigns list and delete a campaign by name. Swallows errors."""
+    try:
+        navigate_to(page, base_url, "/campaigns")
+        wait_for_spinner_gone(page)
+        selector = f'.card-interactive:has-text("{campaign_name}")'
+        if wait_for_element(page, selector) > 0:
+            page.locator(selector).first.click()
+            wait_for_page_load(page)
+            click_button_by_aria(page, "Delete campaign")
+            wait_for_dialog(page)
+            confirm_dialog(page, "OK")
+            print("   [CLEANUP] Test campaign deleted")
+    except Exception as cleanup_err:
+        print(f"   [CLEANUP WARN] {cleanup_err}")
 
 
 # ========================================
