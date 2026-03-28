@@ -1,6 +1,22 @@
-language: en
+language: en-US
+early_access: false
 reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
   auto_review:
     enabled: true
+    drafts: false
+  tools:
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
   path_filters:
     - "!test-files/**"
+chat:
+  auto_reply: true
+tone_instructions: "Focus on Python best practices, Playwright testing patterns, test reliability, and assertion coverage. Flag flaky test patterns with HIGH priority."
