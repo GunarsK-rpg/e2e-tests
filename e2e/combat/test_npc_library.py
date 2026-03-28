@@ -19,8 +19,8 @@ from playwright.sync_api import sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    cleanup_test_campaign,
     click_button,
-    click_button_by_aria,
     confirm_dialog,
     fill_input,
     navigate_to,
@@ -28,7 +28,7 @@ from e2e.common.helpers import (
     select_first_option,
     take_screenshot,
     verify_text_visible,
-    wait_for_dialog,
+    wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -91,21 +91,19 @@ def test_npc_library():
             # Step 5: Search for NPC in virtual scroll list
             print("\n5. Searching for NPC...")
             fill_input(page, "Search NPCs", npc_name)
-            page.wait_for_timeout(500)
 
-            npc_item = page.locator(f'.q-item:has-text("{npc_name}")').first
-            if npc_item.count() > 0:
-                print(f"   [OK] NPC found: {npc_name}")
-            else:
+            npc_selector = f'.q-item:has-text("{npc_name}")'
+            if wait_for_element(page, npc_selector) == 0:
                 take_screenshot(page, "npc_04_not_found", "NPC not found")
                 print(f"   [FAIL] NPC not found: {npc_name}")
                 return False
+            print(f"   [OK] NPC found: {npc_name}")
 
             take_screenshot(page, "npc_05_found", "NPC in list")
 
             # Step 6: Click NPC to view detail
             print("\n6. Viewing NPC detail...")
-            npc_item.click()
+            page.locator(npc_selector).first.click()
             wait_for_page_load(page)
             print("   [OK] NPC detail loaded")
             take_screenshot(page, "npc_06_detail", "NPC detail")
@@ -160,19 +158,7 @@ def test_npc_library():
             return False
         finally:
             if page is not None and campaign_name:
-                try:
-                    navigate_to(page, BASE_URL, "/campaigns")
-                    wait_for_spinner_gone(page)
-                    card = page.locator(f'.card-interactive:has-text("{campaign_name}")').first
-                    if card.count() > 0:
-                        card.click()
-                        wait_for_page_load(page)
-                        click_button_by_aria(page, "Delete campaign")
-                        wait_for_dialog(page)
-                        confirm_dialog(page, "OK")
-                        print("   [CLEANUP] Test campaign deleted")
-                except Exception as cleanup_err:
-                    print(f"   [CLEANUP WARN] {cleanup_err}")
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()

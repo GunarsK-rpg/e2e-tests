@@ -25,6 +25,7 @@ from e2e.common.helpers import (
     print_test_summary,
     take_screenshot,
     verify_url_contains,
+    wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -50,12 +51,11 @@ def test_character_deletion():
             navigate_to(page, BASE_URL, "/")
             wait_for_spinner_gone(page)
 
-            cards = page.locator(HERO_CARD)
-            if cards.count() == 0:
+            if wait_for_element(page, HERO_CARD) == 0:
                 print("   [SKIP] No characters to delete")
                 return True
 
-            last_card = cards.last
+            last_card = page.locator(HERO_CARD).last
             card_name = last_card.locator(".text-h6").first.inner_text()
             print(f"   [OK] Will delete: {card_name}")
 
