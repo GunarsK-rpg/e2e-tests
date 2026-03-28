@@ -68,6 +68,8 @@ def test_campaign_join():
             invite_link = page.locator('a[href*="/join/"]').first
             invite_link.wait_for(state="visible", timeout=10000)
             join_url = invite_link.get_attribute("href")
+            if not join_url:
+                raise AssertionError("Invite link visible but href attribute is missing")
             print(f"   [OK] Invite link: {join_url}")
 
             take_screenshot(page, "join_02_detail", "Campaign detail")
