@@ -24,6 +24,7 @@ from e2e.common.helpers import (
     verify_element_exists,
     verify_url_contains,
     wait_for_element,
+    wait_for_page_load,
     wait_for_spinner_gone,
 )
 
@@ -69,7 +70,8 @@ def test_character_sheet():
                 return True
 
             page.locator(HERO_CARD).first.click()
-            page.wait_for_load_state("networkidle")
+            page.wait_for_url("**/characters/**", timeout=10000)
+            wait_for_page_load(page)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/characters/")
