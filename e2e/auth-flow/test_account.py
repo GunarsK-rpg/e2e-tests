@@ -110,7 +110,7 @@ def test_account_settings():
             submit_form(page, wait_ms=500)
 
             error_text = has_error.text_content() if has_error.count() > 0 else ""
-            if "3" in error_text:
+            if "at least 3" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
                 take_screenshot(page, "account_07_no_error", "Missing validation error")
@@ -125,7 +125,8 @@ def test_account_settings():
 
             save_btn = page.locator('button[type="submit"]').first
             is_disabled = save_btn.get_attribute("disabled") is not None
-            print(f"   [OK] Save button disabled (no changes): {is_disabled}")
+            assert is_disabled, "Save button must be disabled when there are no changes"
+            print("   [OK] Save button disabled (no changes)")
 
             print_test_summary(
                 "ACCOUNT SETTINGS",
