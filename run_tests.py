@@ -87,6 +87,7 @@ class TestRunner:
             # Registration must run first -- creates test user for all tests
             (base / "auth-flow" / "test_register.py", "Registration Flow"),
             (base / "auth-flow" / "test_login.py", "Login Flow"),
+            (base / "auth-flow" / "test_account.py", "Account Settings"),
             # Character tests
             (base / "characters" / "test_character_creation.py", "Character Creation"),
             (base / "characters" / "test_character_sheet.py", "Character Sheet"),
