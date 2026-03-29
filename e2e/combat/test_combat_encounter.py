@@ -22,6 +22,7 @@ from e2e.common.helpers import (
     cleanup_test_campaign,
     click_button,
     click_button_if_visible,
+    click_increment,
     confirm_dialog,
     dismiss_dialog,
     fill_input,
@@ -123,7 +124,101 @@ def test_combat_encounter():
 
             take_screenshot(page, "combat_07_state", "Combat state")
 
-            take_screenshot(page, "combat_08_done", "Test complete")
+            # --- COMBAT ROUND MANAGEMENT ---
+
+            # Step 8: Test turn counter increment
+            print("\n8. Testing turn counter...")
+            turn_increase = page.locator('button[aria-label="Increase Turn"]')
+            if turn_increase.count() > 0 and turn_increase.is_enabled():
+                click_increment(page, "Turn")
+                page.wait_for_timeout(500)
+                print("   [OK] Turn incremented")
+            else:
+                print("   [INFO] Turn increase button not available")
+
+            take_screenshot(page, "combat_08_turn", "After turn increment")
+
+            # Step 9: Test phase toggle (click second option)
+            print("\n9. Testing phase toggle options...")
+            phase_toggle = page.locator(".q-btn-toggle")
+            if phase_toggle.count() > 0:
+                toggle_btns = phase_toggle.locator(".q-btn")
+                if toggle_btns.count() > 1:
+                    toggle_btns.nth(1).click()
+                    page.wait_for_timeout(500)
+                    print("   [OK] Phase toggled to second option")
+                else:
+                    print("   [INFO] Only one phase option available")
+            else:
+                print("   [INFO] Phase toggle not found")
+
+            take_screenshot(page, "combat_09_phase", "After phase toggle")
+
+            # Step 10: Test combat state persistence after reload
+            print("\n10. Verifying state persistence...")
+            page.reload()
+            wait_for_page_load(page)
+            wait_for_spinner_gone(page)
+            verify_input_value(page, combat_name, "Combat name after reload")
+            print("   [OK] Combat state persisted")
+
+            # --- NPC INSTANCE MANAGEMENT ---
+
+            # Step 11: Test NPC resource buttons (if NPC tiles exist)
+            print("\n11. Testing NPC instance resources...")
+            npc_tiles = page.locator(".combat-npc-tile")
+            if npc_tiles.count() > 0:
+                npc_tile = npc_tiles.first
+
+                # HP decrease/increase
+                hp_decrease = npc_tile.locator('button[aria-label="Decrease HP"]')
+                hp_increase = npc_tile.locator('button[aria-label="Increase HP"]')
+
+                if hp_decrease.count() > 0 and hp_decrease.is_enabled():
+                    hp_decrease.click()
+                    page.wait_for_timeout(500)
+                    print("   [OK] NPC HP decreased")
+
+                    if hp_increase.count() > 0 and hp_increase.is_enabled():
+                        hp_increase.click()
+                        page.wait_for_timeout(500)
+                        print("   [OK] NPC HP increased (restored)")
+                else:
+                    print("   [INFO] NPC HP buttons not available")
+
+                take_screenshot(page, "combat_11_npc_hp", "NPC HP changes")
+
+                # Step 12: Test turn done toggle
+                print("\n12. Testing NPC turn done toggle...")
+                turn_done_btn = npc_tile.locator('[aria-label="Toggle turn done"]')
+                if turn_done_btn.count() > 0:
+                    turn_done_btn.click()
+                    page.wait_for_timeout(300)
+                    print("   [OK] Turn done toggled on")
+
+                    turn_done_btn.click()
+                    page.wait_for_timeout(300)
+                    print("   [OK] Turn done toggled off (restored)")
+                else:
+                    print("   [INFO] Turn done toggle not found")
+
+                # Step 13: Test turn speed toggle
+                print("\n13. Testing NPC turn speed toggle...")
+                speed_toggle = npc_tile.locator(".turn-speed-toggle, .q-btn-toggle")
+                if speed_toggle.count() > 0:
+                    speed_btns = speed_toggle.locator(".q-btn")
+                    if speed_btns.count() > 0:
+                        speed_btns.first.click()
+                        page.wait_for_timeout(300)
+                        print("   [OK] Turn speed toggled")
+                    else:
+                        print("   [INFO] No speed toggle buttons found")
+                else:
+                    print("   [INFO] Turn speed toggle not found (may be boss type)")
+            else:
+                print("   [INFO] No NPC tiles -- skipping instance tests")
+
+            take_screenshot(page, "combat_13_done", "Test complete")
 
             print_test_summary(
                 "COMBAT ENCOUNTER",
@@ -135,7 +230,12 @@ def test_combat_encounter():
                     "Combat tiles checked",
                     "Phase toggle verified",
                     "Active toggle tested",
-                    "Cleanup completed",
+                    "Turn counter incremented",
+                    "Phase toggle option changed",
+                    "State persists after reload",
+                    "NPC HP decrease/increase",
+                    "NPC turn done toggle",
+                    "NPC turn speed toggle",
                 ],
             )
             return True

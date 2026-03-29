@@ -47,6 +47,7 @@ DELETE_CONFIRM_INPUT = 'input[aria-label="Type delete to confirm"]'
 # Increment/decrement buttons (AttributesStep, SkillsStep)
 BTN_INCREMENT = 'button[aria-label="Increase {name}"]'
 BTN_INCREMENT_RANK = 'button[aria-label="Increase {name} rank"]'
+BTN_DECREMENT = 'button[aria-label="Decrease {name}"]'
 
 # Expertise checkbox
 EXPERTISE_CHECKBOX = ".q-checkbox"
@@ -119,6 +120,16 @@ def fill_textarea(page: Page, label: str, value: str, wait_ms: int = 200) -> Non
     textarea = field.locator("textarea.q-field__native").first
     textarea.click()
     textarea.fill(value or "")
+    page.wait_for_timeout(wait_ms)
+
+
+def fill_input_by_aria(page: Page, aria_label: str, value: str, wait_ms: int = 200) -> None:
+    """Fill an input by its aria-label attribute. Raises if not found."""
+    input_el = page.locator(f'input[aria-label="{aria_label}"]').first
+    if input_el.count() == 0:
+        raise AssertionError(f"Input with aria-label '{aria_label}' not found")
+    input_el.click()
+    input_el.fill(value or "")
     page.wait_for_timeout(wait_ms)
 
 
@@ -241,6 +252,17 @@ def click_increment_rank(page: Page, name: str, wait_ms: int = 200) -> None:
     raise AssertionError(f"Cannot increment {name} rank: button not found")
 
 
+def click_decrement(page: Page, name: str, wait_ms: int = 200) -> None:
+    """Click decrement button by aria-label 'Decrease {name}'"""
+    btn = page.locator(BTN_DECREMENT.format(name=name)).first
+    if btn.count() > 0:
+        btn.click()
+        page.wait_for_timeout(wait_ms)
+        print(f"   [OK] Decremented {name}")
+        return
+    raise AssertionError(f"Cannot decrement {name}: button not found")
+
+
 # ========================================
 # QUASAR TAB HELPERS
 # ========================================
@@ -339,6 +361,33 @@ def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> None:
 
 
 # ========================================
+# TOGGLE HELPERS
+# ========================================
+
+
+def click_aria_toggle(page: Page, aria_label: str, wait_ms: int = 200) -> None:
+    """Click a toggle element by aria-label (conditions, switches). Raises if not found."""
+    el = page.locator(f'[aria-label="{aria_label}"]').first
+    if el.count() == 0:
+        raise AssertionError(f"Toggle '{aria_label}' not found")
+    el.click()
+    page.wait_for_timeout(wait_ms)
+
+
+def verify_aria_pressed(page: Page, aria_label: str, expected: str) -> None:
+    """Assert aria-pressed value of a toggle element. expected: 'true' or 'false'."""
+    el = page.locator(f'[aria-label="{aria_label}"]').first
+    if el.count() == 0:
+        raise AssertionError(f"Toggle '{aria_label}' not found")
+    actual = el.get_attribute("aria-pressed")
+    if actual != expected:
+        raise AssertionError(
+            f"Toggle '{aria_label}' aria-pressed: expected '{expected}', got '{actual}'"
+        )
+    print(f"   [OK] {aria_label} pressed={actual}")
+
+
+# ========================================
 # NAVIGATION HELPERS
 # ========================================
 
@@ -412,6 +461,16 @@ def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 1
     count = loc.count()
     print(f"   [OK] {name} visible")
     return count
+
+
+def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
+    """Assert text is NOT visible on page. Raises if still found."""
+    element = page.locator(f'text="{text}"').first
+    try:
+        expect(element).not_to_be_visible(timeout=timeout)
+        print(f"   [OK] Text not visible: {text}")
+    except Exception as exc:
+        raise AssertionError(f"Text still visible: {text}") from exc
 
 
 # ========================================

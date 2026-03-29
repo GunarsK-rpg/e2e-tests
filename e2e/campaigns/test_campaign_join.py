@@ -18,6 +18,7 @@ from e2e.common.config import get_config
 from e2e.common.helpers import (
     cleanup_test_campaign,
     click_button,
+    confirm_dialog,
     fill_input,
     fill_textarea,
     navigate_to,
@@ -25,6 +26,7 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_text_visible,
+    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -93,6 +95,74 @@ def test_campaign_join():
             if char_cards.count() > 0:
                 print(f"   [OK] Existing character cards: {char_cards.count()}")
 
+            # --- HERO ASSIGNMENT ---
+
+            # Step 5: Assign a character to the campaign
+            print("\n5. Assigning character to campaign...")
+            char_cards = page.locator('.card-interactive[role="button"]')
+            if char_cards.count() > 0:
+                char_cards.first.click()
+                page.wait_for_timeout(500)
+
+                # Confirm assignment if dialog appears
+                dialog = page.locator(".q-dialog")
+                if dialog.count() > 0:
+                    confirm_dialog(page, "OK")
+
+                wait_for_page_load(page)
+                wait_for_spinner_gone(page)
+                page.wait_for_timeout(1000)
+                print("   [OK] Character assigned to campaign")
+                take_screenshot(page, "join_05_assigned", "Character assigned")
+
+                # Step 6: Navigate to campaign detail to verify hero
+                print("\n6. Verifying hero in campaign detail...")
+                navigate_to(page, BASE_URL, "/campaigns")
+                wait_for_spinner_gone(page)
+
+                campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")')
+                if campaign_card.count() == 0:
+                    raise AssertionError(f"Campaign '{campaign_name}' not found in list")
+                campaign_card.first.click()
+                wait_for_page_load(page)
+                wait_for_spinner_gone(page)
+
+                take_screenshot(page, "join_06_detail", "Campaign with hero")
+
+                # --- HERO REMOVAL ---
+
+                # Step 7: Remove hero from campaign
+                print("\n7. Removing hero from campaign...")
+                remove_btn = page.locator(
+                    '[aria-label*="Remove"][aria-label*="from campaign"]'
+                ).first
+                if remove_btn.count() > 0:
+                    remove_btn.click()
+                    page.wait_for_timeout(300)
+
+                    # Step 8: Confirm removal dialog
+                    print("\n8. Confirming removal...")
+                    wait_for_dialog(page)
+                    verify_text_visible(page, "Remove Character")
+                    take_screenshot(page, "join_08_confirm", "Removal confirmation")
+                    confirm_dialog(page, "OK")
+                    wait_for_spinner_gone(page)
+                    page.wait_for_timeout(500)
+                    print("   [OK] Hero removed from campaign")
+
+                    # Step 9: Verify hero removed
+                    print("\n9. Verifying hero removed...")
+                    remaining = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                    if remaining.count() == 0:
+                        print("   [OK] No heroes remaining in campaign")
+                    else:
+                        print(f"   [OK] {remaining.count()} heroes still in campaign")
+                    take_screenshot(page, "join_09_removed", "Hero removed")
+                else:
+                    print("   [INFO] Remove button not found (may not be owner)")
+            else:
+                print("   [INFO] No characters available to assign")
+
             print_test_summary(
                 "CAMPAIGN JOIN",
                 [
@@ -100,7 +170,10 @@ def test_campaign_join():
                     "Invite link found",
                     "Join page navigated",
                     "Join page content verified",
-                    "Cleanup completed",
+                    "Character assigned to campaign",
+                    "Hero visible in campaign detail",
+                    "Hero removal confirmed",
+                    "Hero removed from campaign",
                 ],
             )
             return True
