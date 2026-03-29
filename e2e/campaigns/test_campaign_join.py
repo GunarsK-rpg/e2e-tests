@@ -11,7 +11,7 @@ import sys
 import time
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
@@ -99,19 +99,23 @@ def test_campaign_join():
 
             # Step 5: Assign a character to the campaign
             print("\n5. Assigning character to campaign...")
+            character_assigned = False
+            hero_removed = False
             char_cards = page.locator('.card-interactive[role="button"]')
             if char_cards.count() > 0:
                 char_cards.first.click()
                 page.wait_for_timeout(500)
 
                 # Confirm assignment if dialog appears
-                dialog = page.locator(".q-dialog")
-                if dialog.count() > 0:
+                try:
+                    wait_for_dialog(page, timeout=3000)
                     confirm_dialog(page, "OK")
+                except Exception:
+                    pass  # No dialog -- assignment may not require confirmation
 
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
-                page.wait_for_timeout(1000)
+                character_assigned = True
                 print("   [OK] Character assigned to campaign")
                 take_screenshot(page, "join_05_assigned", "Character assigned")
 
@@ -133,12 +137,9 @@ def test_campaign_join():
 
                 # Step 7: Remove hero from campaign
                 print("\n7. Removing hero from campaign...")
-                remove_btn = page.locator(
-                    '[aria-label*="Remove"][aria-label*="from campaign"]'
-                ).first
-                if remove_btn.count() > 0:
-                    remove_btn.click()
-                    page.wait_for_timeout(300)
+                remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                if remove_locator.count() > 0:
+                    remove_locator.first.click()
 
                     # Step 8: Confirm removal dialog
                     print("\n8. Confirming removal...")
@@ -147,35 +148,33 @@ def test_campaign_join():
                     take_screenshot(page, "join_08_confirm", "Removal confirmation")
                     confirm_dialog(page, "OK")
                     wait_for_spinner_gone(page)
-                    page.wait_for_timeout(500)
+                    hero_removed = True
                     print("   [OK] Hero removed from campaign")
 
                     # Step 9: Verify hero removed
                     print("\n9. Verifying hero removed...")
                     remaining = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
-                    if remaining.count() == 0:
-                        print("   [OK] No heroes remaining in campaign")
-                    else:
-                        print(f"   [OK] {remaining.count()} heroes still in campaign")
+                    expect(remaining).to_have_count(0)
+                    print("   [OK] No heroes remaining in campaign")
                     take_screenshot(page, "join_09_removed", "Hero removed")
                 else:
                     print("   [INFO] Remove button not found (may not be owner)")
             else:
                 print("   [INFO] No characters available to assign")
 
-            print_test_summary(
-                "CAMPAIGN JOIN",
-                [
-                    "Campaign created",
-                    "Invite link found",
-                    "Join page navigated",
-                    "Join page content verified",
-                    "Character assigned to campaign",
-                    "Hero visible in campaign detail",
-                    "Hero removal confirmed",
-                    "Hero removed from campaign",
-                ],
-            )
+            summary_steps = [
+                "Campaign created",
+                "Invite link found",
+                "Join page navigated",
+                "Join page content verified",
+            ]
+            if character_assigned:
+                summary_steps.append("Character assigned to campaign")
+                summary_steps.append("Hero visible in campaign detail")
+            if hero_removed:
+                summary_steps.append("Hero removal confirmed")
+                summary_steps.append("Hero removed from campaign")
+            print_test_summary("CAMPAIGN JOIN", summary_steps)
             return True
 
         except Exception as e:

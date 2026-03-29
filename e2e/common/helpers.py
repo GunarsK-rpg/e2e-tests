@@ -379,12 +379,8 @@ def verify_aria_pressed(page: Page, aria_label: str, expected: str) -> None:
     el = page.locator(f'[aria-label="{aria_label}"]').first
     if el.count() == 0:
         raise AssertionError(f"Toggle '{aria_label}' not found")
-    actual = el.get_attribute("aria-pressed")
-    if actual != expected:
-        raise AssertionError(
-            f"Toggle '{aria_label}' aria-pressed: expected '{expected}', got '{actual}'"
-        )
-    print(f"   [OK] {aria_label} pressed={actual}")
+    expect(el).to_have_attribute("aria-pressed", expected)
+    print(f"   [OK] {aria_label} pressed={expected}")
 
 
 # ========================================
@@ -464,13 +460,15 @@ def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 1
 
 
 def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
-    """Assert text is NOT visible on page. Raises if still found."""
-    element = page.locator(f'text="{text}"').first
-    try:
-        expect(element).not_to_be_visible(timeout=timeout)
-        print(f"   [OK] Text not visible: {text}")
-    except Exception as exc:
-        raise AssertionError(f"Text still visible: {text}") from exc
+    """Assert text is NOT visible on page. Raises if any match is still visible."""
+    locator = page.locator(f'text="{text}"')
+    count = locator.count()
+    for i in range(count):
+        try:
+            expect(locator.nth(i)).not_to_be_visible(timeout=timeout)
+        except PlaywrightTimeoutError as exc:
+            raise AssertionError(f"Text still visible: {text} (match {i})") from exc
+    print(f"   [OK] Text not visible: {text}")
 
 
 # ========================================

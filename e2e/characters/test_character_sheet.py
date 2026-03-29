@@ -11,6 +11,7 @@ Matches: MyCharactersPage.vue (HeroCard with .card-interactive)
 import sys
 import traceback
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
@@ -115,11 +116,21 @@ def test_character_sheet():
             # Test Focus decrement then increment (fresh characters start at max)
             focus_decrease = page.locator('button[aria-label="Decrease Focus"]')
             if focus_decrease.count() > 0 and focus_decrease.is_enabled():
+                focus_value = focus_decrease.locator("xpath=..").locator(".resource-value").first
+                before = focus_value.inner_text()
+
                 click_decrement(page, "Focus")
                 page.wait_for_timeout(500)
+                after_dec = focus_value.inner_text()
+                assert after_dec != before, f"Focus did not change after decrement (still {before})"
+
                 click_increment(page, "Focus")
                 page.wait_for_timeout(500)
-                print("   [OK] Focus decrement/increment working")
+                after_inc = focus_value.inner_text()
+                assert (
+                    after_inc == before
+                ), f"Focus did not restore after increment (expected {before}, got {after_inc})"
+                print("   [OK] Focus decrement/increment verified")
             else:
                 print("   [INFO] Focus buttons not available")
 
@@ -128,19 +139,20 @@ def test_character_sheet():
             # Step 13: Test HP management dialog
             step += 1
             print(f"\n{step}. Testing HP management dialog...")
-            hp_value = page.locator(".resource-value").first
-            if hp_value.count() > 0:
-                hp_value.click()
+            # Locate HP resource by finding the Decrease HP button's parent
+            hp_decrease = page.locator('button[aria-label="Decrease HP"]')
+            if hp_decrease.count() > 0:
+                hp_display = hp_decrease.locator("xpath=..").locator(".resource-value").first
+                hp_before = hp_display.inner_text()
+                hp_display.click()
                 page.wait_for_timeout(500)
 
-                dialog = page.locator(".q-dialog")
-                if dialog.count() > 0:
+                try:
                     wait_for_dialog(page)
                     take_screenshot(page, "sheet_13_hp_dialog", "HP dialog")
 
                     amount_input = page.locator('.q-dialog input[type="number"]').first
                     if amount_input.count() > 0:
-                        # Damage 1 HP (fresh characters start at full HP)
                         amount_input.fill("1")
                         page.wait_for_timeout(200)
 
@@ -148,18 +160,26 @@ def test_character_sheet():
                         if damage_btn.count() > 0 and damage_btn.first.is_enabled():
                             damage_btn.first.click()
                             page.wait_for_timeout(500)
-                            print("   [OK] Damage operation executed")
+                            hp_after_damage = hp_display.inner_text()
+                            assert (
+                                hp_after_damage != hp_before
+                            ), f"HP did not change after damage (still {hp_before})"
+                            print(f"   [OK] HP damaged: {hp_before} -> {hp_after_damage}")
 
                             # Dialog closes after damage -- heal via + button
                             click_increment(page, "HP")
                             page.wait_for_timeout(500)
-                            print("   [OK] HP restored via increment")
+                            hp_after_heal = hp_display.inner_text()
+                            assert (
+                                hp_after_heal == hp_before
+                            ), f"HP did not restore (expected {hp_before}, got {hp_after_heal})"
+                            print(f"   [OK] HP restored: {hp_after_damage} -> {hp_after_heal}")
                         else:
                             print("   [INFO] Damage button not available")
-                else:
+                except PlaywrightTimeoutError:
                     print("   [INFO] HP dialog did not open")
             else:
-                print("   [INFO] HP value display not found")
+                print("   [INFO] HP resource not found")
 
             # --- CONDITIONS (Conditions tab) ---
 
@@ -174,6 +194,10 @@ def test_character_sheet():
             slowed = page.locator(f'[aria-label="{slowed_label}"]')
             if slowed.count() > 0:
                 initial_state = slowed.first.get_attribute("aria-pressed")
+                if initial_state not in ("true", "false"):
+                    raise AssertionError(
+                        f"Slowed toggle has unexpected aria-pressed: {initial_state}"
+                    )
                 print(f"   [INFO] Slowed (pressed={initial_state})")
 
                 click_aria_toggle(page, slowed_label)
@@ -203,13 +227,12 @@ def test_character_sheet():
             wait_for_spinner_gone(page)
             page.wait_for_timeout(500)
 
-            edit_equip_btn = page.locator('[aria-label="Edit equipment"]').first
-            if edit_equip_btn.count() > 0:
-                edit_equip_btn.click()
+            edit_equip = page.locator('[aria-label="Edit equipment"]')
+            if edit_equip.count() > 0:
+                edit_equip.first.click()
                 page.wait_for_timeout(500)
 
-                dialog = page.locator(".q-dialog")
-                if dialog.count() > 0:
+                try:
                     wait_for_dialog(page)
                     verify_element_exists(page, ".q-dialog .q-card", "Equipment dialog")
                     take_screenshot(page, "sheet_15_equip_dialog", "Equipment dialog")
@@ -225,15 +248,15 @@ def test_character_sheet():
                     close_btn = page.locator(
                         '.q-dialog [aria-label="Close dialog"],'
                         ' .q-dialog .q-btn:has-text("Cancel")'
-                    ).first
+                    )
                     if close_btn.count() > 0:
-                        close_btn.click()
+                        close_btn.first.click()
                         page.wait_for_timeout(300)
                     else:
                         page.keyboard.press("Escape")
                         page.wait_for_timeout(300)
                     print("   [OK] Equipment dialog opened and closed")
-                else:
+                except PlaywrightTimeoutError:
                     print("   [INFO] Equipment dialog did not open")
             else:
                 print("   [INFO] No equipment items found")

@@ -56,8 +56,7 @@ def test_character_editing():
             wait_for_spinner_gone(page)
 
             if wait_for_element(page, HERO_CARD) == 0:
-                print("   [SKIP] No characters found -- cannot test editing")
-                return True
+                raise AssertionError("No characters found -- cannot test editing")
 
             page.locator(HERO_CARD).first.click()
             page.wait_for_url("**/characters/**", timeout=10000)

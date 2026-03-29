@@ -63,6 +63,12 @@ def test_password_recovery():
             print("\n3. Testing empty form submission...")
             submit_form(page)
             page.wait_for_timeout(300)
+            email_input = page.locator('input[type="email"]').first
+            is_invalid = email_input.evaluate(
+                "el => !el.validity.valid || el.closest('.q-field--error') !== null"
+            )
+            assert is_invalid, "Email input should be in invalid state after empty submission"
+            print("   [OK] Email validation shown")
             take_screenshot(page, "recovery_03_validation", "Empty form validation")
 
             # Step 4: Fill email and submit

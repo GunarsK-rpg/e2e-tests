@@ -145,7 +145,6 @@ def test_npc_library():
                     "NPC name edited",
                     "Updated name verified",
                     "NPC archived",
-                    "Campaign cleaned up",
                 ],
             )
             return True

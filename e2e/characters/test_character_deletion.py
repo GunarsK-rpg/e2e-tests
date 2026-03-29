@@ -52,8 +52,7 @@ def test_character_deletion():
             wait_for_spinner_gone(page)
 
             if wait_for_element(page, HERO_CARD) == 0:
-                print("   [SKIP] No characters to delete")
-                return True
+                raise AssertionError("No characters found -- cannot test deletion")
 
             last_card = page.locator(HERO_CARD).last
             card_name = last_card.locator(".text-h6").first.inner_text()
@@ -106,7 +105,6 @@ def test_character_deletion():
             # Step 8: Verify redirected to characters list
             print("\n8. Verifying redirect...")
             wait_for_page_load(page)
-            page.wait_for_timeout(1000)
             take_screenshot(page, "delete_08_after", "After deletion")
 
             # Navigate to characters list and verify hero is gone

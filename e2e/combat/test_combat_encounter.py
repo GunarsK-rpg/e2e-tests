@@ -130,23 +130,35 @@ def test_combat_encounter():
             print("\n8. Testing turn counter...")
             turn_increase = page.locator('button[aria-label="Increase Turn"]')
             if turn_increase.count() > 0 and turn_increase.is_enabled():
+                turn_display = turn_increase.locator("xpath=..").locator(".resource-value").first
+                turn_before = turn_display.inner_text().strip()
+
                 click_increment(page, "Turn")
                 page.wait_for_timeout(500)
-                print("   [OK] Turn incremented")
+
+                turn_after = turn_display.inner_text().strip()
+                before_int = int(turn_before) if turn_before.isdigit() else 0
+                after_int = int(turn_after) if turn_after.isdigit() else 0
+                assert (
+                    after_int == before_int + 1
+                ), f"Turn did not increment (expected {before_int + 1}, got {after_int})"
+                print(f"   [OK] Turn incremented: {turn_before} -> {turn_after}")
             else:
                 print("   [INFO] Turn increase button not available")
 
             take_screenshot(page, "combat_08_turn", "After turn increment")
 
             # Step 9: Test phase toggle (click second option)
+            # Scope to combat-level toggle (first on page, before NPC tile toggles)
             print("\n9. Testing phase toggle options...")
-            phase_toggle = page.locator(".q-btn-toggle")
+            phase_toggle = page.locator(".q-btn-toggle").first
             if phase_toggle.count() > 0:
                 toggle_btns = phase_toggle.locator(".q-btn")
                 if toggle_btns.count() > 1:
                     toggle_btns.nth(1).click()
                     page.wait_for_timeout(500)
-                    print("   [OK] Phase toggled to second option")
+                    phase_value = toggle_btns.nth(1).inner_text().strip()
+                    print(f"   [OK] Phase toggled to: {phase_value}")
                 else:
                     print("   [INFO] Only one phase option available")
             else:
@@ -156,10 +168,42 @@ def test_combat_encounter():
 
             # Step 10: Test combat state persistence after reload
             print("\n10. Verifying state persistence...")
+            # Capture current turn value before reload
+            turn_display_check = page.locator('button[aria-label="Increase Turn"]')
+            saved_turn = None
+            if turn_display_check.count() > 0:
+                saved_turn = (
+                    turn_display_check.locator("xpath=..")
+                    .locator(".resource-value")
+                    .first.inner_text()
+                    .strip()
+                )
+
             page.reload()
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             verify_input_value(page, combat_name, "Combat name after reload")
+
+            # Verify turn persisted
+            if saved_turn is not None and turn_display_check.count() > 0:
+                reloaded_turn = (
+                    turn_display_check.locator("xpath=..")
+                    .locator(".resource-value")
+                    .first.inner_text()
+                    .strip()
+                )
+                assert (
+                    reloaded_turn == saved_turn
+                ), f"Turn not persisted (expected {saved_turn}, got {reloaded_turn})"
+                print(f"   [OK] Turn persisted: {reloaded_turn}")
+
+            # Verify phase persisted (second toggle button should still be active)
+            reloaded_phase = page.locator(".q-btn-toggle").first
+            if reloaded_phase.count() > 0:
+                active_btn = reloaded_phase.locator(".q-btn--active, .bg-primary")
+                if active_btn.count() > 0:
+                    print(f"   [OK] Phase persisted: {active_btn.first.inner_text().strip()}")
+
             print("   [OK] Combat state persisted")
 
             # --- NPC INSTANCE MANAGEMENT ---
@@ -173,32 +217,53 @@ def test_combat_encounter():
                 # HP decrease/increase
                 hp_decrease = npc_tile.locator('button[aria-label="Decrease HP"]')
                 hp_increase = npc_tile.locator('button[aria-label="Increase HP"]')
+                npc_hp_display = npc_tile.locator(".resource-value").first
 
                 if hp_decrease.count() > 0 and hp_decrease.is_enabled():
+                    hp_before = npc_hp_display.inner_text().strip()
                     hp_decrease.click()
                     page.wait_for_timeout(500)
-                    print("   [OK] NPC HP decreased")
+                    hp_after_dec = npc_hp_display.inner_text().strip()
+                    assert (
+                        hp_after_dec != hp_before
+                    ), f"NPC HP did not change after decrease (still {hp_before})"
+                    print(f"   [OK] NPC HP decreased: {hp_before} -> {hp_after_dec}")
 
                     if hp_increase.count() > 0 and hp_increase.is_enabled():
                         hp_increase.click()
                         page.wait_for_timeout(500)
-                        print("   [OK] NPC HP increased (restored)")
+                        hp_after_inc = npc_hp_display.inner_text().strip()
+                        assert (
+                            hp_after_inc == hp_before
+                        ), f"NPC HP did not restore (expected {hp_before}, got {hp_after_inc})"
+                        print(f"   [OK] NPC HP restored: {hp_after_dec} -> {hp_after_inc}")
                 else:
                     print("   [INFO] NPC HP buttons not available")
 
                 take_screenshot(page, "combat_11_npc_hp", "NPC HP changes")
 
-                # Step 12: Test turn done toggle
+                # Step 12: Test turn done toggle (no aria-pressed; uses color change)
                 print("\n12. Testing NPC turn done toggle...")
                 turn_done_btn = npc_tile.locator('[aria-label="Toggle turn done"]')
                 if turn_done_btn.count() > 0:
+                    has_positive_before = "positive" in (turn_done_btn.get_attribute("class") or "")
                     turn_done_btn.click()
                     page.wait_for_timeout(300)
-                    print("   [OK] Turn done toggled on")
+                    has_positive_after = "positive" in (turn_done_btn.get_attribute("class") or "")
+                    assert (
+                        has_positive_before != has_positive_after
+                    ), "Turn done state did not change after click"
+                    print(f"   [OK] Turn done toggled (positive={has_positive_after})")
 
                     turn_done_btn.click()
                     page.wait_for_timeout(300)
-                    print("   [OK] Turn done toggled off (restored)")
+                    has_positive_restored = "positive" in (
+                        turn_done_btn.get_attribute("class") or ""
+                    )
+                    assert (
+                        has_positive_restored == has_positive_before
+                    ), "Turn done did not restore after second click"
+                    print(f"   [OK] Turn done restored (positive={has_positive_restored})")
                 else:
                     print("   [INFO] Turn done toggle not found")
 
@@ -210,7 +275,11 @@ def test_combat_encounter():
                     if speed_btns.count() > 0:
                         speed_btns.first.click()
                         page.wait_for_timeout(300)
-                        print("   [OK] Turn speed toggled")
+                        # Verify the clicked button is now active
+                        btn_classes = speed_btns.first.get_attribute("class") or ""
+                        is_active = "q-btn--active" in btn_classes or "bg-primary" in btn_classes
+                        assert is_active, "Speed toggle button did not become active after click"
+                        print("   [OK] Turn speed toggled and active")
                     else:
                         print("   [INFO] No speed toggle buttons found")
                 else:
