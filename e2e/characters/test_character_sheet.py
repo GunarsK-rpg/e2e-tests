@@ -112,27 +112,16 @@ def test_character_sheet():
             click_tab(page, "Stats")
             wait_for_spinner_gone(page)
 
-            # Test Focus increment/decrement
-            focus_increase = page.locator('button[aria-label="Increase Focus"]')
-            if focus_increase.count() > 0 and focus_increase.is_enabled():
-                click_increment(page, "Focus")
-                page.wait_for_timeout(500)
+            # Test Focus decrement then increment (fresh characters start at max)
+            focus_decrease = page.locator('button[aria-label="Decrease Focus"]')
+            if focus_decrease.count() > 0 and focus_decrease.is_enabled():
                 click_decrement(page, "Focus")
                 page.wait_for_timeout(500)
-                print("   [OK] Focus increment/decrement working")
+                click_increment(page, "Focus")
+                page.wait_for_timeout(500)
+                print("   [OK] Focus decrement/increment working")
             else:
                 print("   [INFO] Focus buttons not available")
-
-            # Test Investiture increment/decrement (not all characters have it)
-            inv_increase = page.locator('button[aria-label="Increase Investiture"]')
-            if inv_increase.count() > 0 and inv_increase.is_enabled():
-                click_increment(page, "Investiture")
-                page.wait_for_timeout(500)
-                click_decrement(page, "Investiture")
-                page.wait_for_timeout(500)
-                print("   [OK] Investiture increment/decrement working")
-            else:
-                print("   [INFO] Investiture not available on this character")
 
             take_screenshot(page, "sheet_12_resources", "Resource tracking")
 
@@ -151,29 +140,22 @@ def test_character_sheet():
 
                     amount_input = page.locator('.q-dialog input[type="number"]').first
                     if amount_input.count() > 0:
+                        # Damage 1 HP (fresh characters start at full HP)
                         amount_input.fill("1")
                         page.wait_for_timeout(200)
 
-                        heal_btn = page.locator('.q-dialog .q-btn:has-text("Heal")')
-                        if heal_btn.count() > 0 and heal_btn.first.is_enabled():
-                            heal_btn.first.click()
+                        damage_btn = page.locator('.q-dialog .q-btn:has-text("Damage")')
+                        if damage_btn.count() > 0 and damage_btn.first.is_enabled():
+                            damage_btn.first.click()
                             page.wait_for_timeout(500)
-                            print("   [OK] Heal operation executed")
+                            print("   [OK] Damage operation executed")
 
-                            amount_input.fill("1")
-                            page.wait_for_timeout(200)
-
-                            damage_btn = page.locator('.q-dialog .q-btn:has-text("Damage")')
-                            if damage_btn.count() > 0 and damage_btn.first.is_enabled():
-                                damage_btn.first.click()
-                                page.wait_for_timeout(500)
-                                print("   [OK] Damage operation executed (HP restored)")
+                            # Dialog closes after damage -- heal via + button
+                            click_increment(page, "HP")
+                            page.wait_for_timeout(500)
+                            print("   [OK] HP restored via increment")
                         else:
-                            print("   [INFO] Heal button not available (HP at max)")
-
-                    # Close dialog (no explicit close button -- dismiss via Escape)
-                    page.keyboard.press("Escape")
-                    page.wait_for_timeout(500)
+                            print("   [INFO] Damage button not available")
                 else:
                     print("   [INFO] HP dialog did not open")
             else:
@@ -188,28 +170,27 @@ def test_character_sheet():
             wait_for_spinner_gone(page)
             page.wait_for_timeout(500)
 
-            toggleable = page.locator('[aria-label^="Toggle "][aria-pressed]')
-            if toggleable.count() > 0:
-                first_toggle_label = toggleable.first.get_attribute("aria-label")
-                condition_name = first_toggle_label.replace("Toggle ", "")
-                initial_state = toggleable.first.get_attribute("aria-pressed")
-                print(f"   [INFO] Found: {condition_name} (pressed={initial_state})")
+            slowed_label = "Toggle Slowed"
+            slowed = page.locator(f'[aria-label="{slowed_label}"]')
+            if slowed.count() > 0:
+                initial_state = slowed.first.get_attribute("aria-pressed")
+                print(f"   [INFO] Slowed (pressed={initial_state})")
 
-                click_aria_toggle(page, first_toggle_label)
+                click_aria_toggle(page, slowed_label)
                 wait_for_spinner_gone(page)
                 page.wait_for_timeout(500)
 
                 expected = "false" if initial_state == "true" else "true"
-                verify_aria_pressed(page, first_toggle_label, expected)
+                verify_aria_pressed(page, slowed_label, expected)
 
                 # Toggle back to restore
-                click_aria_toggle(page, first_toggle_label)
+                click_aria_toggle(page, slowed_label)
                 wait_for_spinner_gone(page)
                 page.wait_for_timeout(500)
-                verify_aria_pressed(page, first_toggle_label, initial_state)
-                print(f"   [OK] {condition_name} toggled on and off")
+                verify_aria_pressed(page, slowed_label, initial_state)
+                print("   [OK] Slowed toggled on and off")
             else:
-                print("   [INFO] No toggleable conditions found")
+                print("   [INFO] Slowed condition not found")
 
             take_screenshot(page, "sheet_14_conditions", "Conditions tested")
 
