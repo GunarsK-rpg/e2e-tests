@@ -11,6 +11,7 @@ import sys
 import time
 import traceback
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
@@ -110,13 +111,12 @@ def test_campaign_join():
                 try:
                     wait_for_dialog(page, timeout=3000)
                     confirm_dialog(page, "OK")
-                except Exception:
+                except PlaywrightTimeoutError:
                     pass  # No dialog -- assignment may not require confirmation
 
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
-                character_assigned = True
-                print("   [OK] Character assigned to campaign")
+                print("   [OK] Character assignment submitted")
                 take_screenshot(page, "join_05_assigned", "Character assigned")
 
                 # Step 6: Navigate to campaign detail to verify hero
@@ -131,6 +131,13 @@ def test_campaign_join():
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
 
+                # Verify hero is shown on campaign detail
+                remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                assert (
+                    remove_locator.count() > 0
+                ), "Hero not visible on campaign detail after assignment"
+                character_assigned = True
+                print("   [OK] Hero confirmed on campaign detail")
                 take_screenshot(page, "join_06_detail", "Campaign with hero")
 
                 # --- HERO REMOVAL ---

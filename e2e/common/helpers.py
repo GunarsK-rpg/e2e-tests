@@ -466,7 +466,7 @@ def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
     for i in range(count):
         try:
             expect(locator.nth(i)).not_to_be_visible(timeout=timeout)
-        except PlaywrightTimeoutError as exc:
+        except AssertionError as exc:
             raise AssertionError(f"Text still visible: {text} (match {i})") from exc
     print(f"   [OK] Text not visible: {text}")
 

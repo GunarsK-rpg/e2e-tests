@@ -64,6 +64,7 @@ def test_character_editing():
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/characters/")
+            character_url = page.url
             take_screenshot(page, "edit_01_sheet", "Character sheet")
 
             # Step 2: Enter edit mode
@@ -109,13 +110,15 @@ def test_character_editing():
             click_finish(page)
             wait_for_spinner_gone(page)
 
-            # Step 8: Verify redirect back to character sheet
+            # Step 8: Verify redirect back to same character sheet
             print("\n8. Verifying redirect to character sheet...")
             page.wait_for_url("**/characters/**", timeout=10000)
-            verify_url_contains(page, "/characters/")
             if "/edit" in page.url:
                 raise AssertionError(f"Still on edit page: {page.url}")
-            print("   [OK] Redirected to character sheet")
+            assert (
+                page.url == character_url
+            ), f"Redirected to wrong character: expected {character_url}, got {page.url}"
+            print("   [OK] Redirected to same character sheet")
             take_screenshot(page, "edit_08_saved", "Character saved")
 
             # Step 9: Verify the edit persisted on Others tab > Biography

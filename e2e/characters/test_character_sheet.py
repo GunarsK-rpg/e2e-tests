@@ -72,8 +72,7 @@ def test_character_sheet():
             # Step 2: Click first character card
             print("\n2. Selecting character...")
             if wait_for_element(page, HERO_CARD) == 0:
-                print("   [SKIP] No characters found")
-                return True
+                raise AssertionError("No characters found -- cannot test character sheet")
 
             page.locator(HERO_CARD).first.click()
             page.wait_for_url("**/characters/**", timeout=10000)
@@ -152,30 +151,29 @@ def test_character_sheet():
                     take_screenshot(page, "sheet_13_hp_dialog", "HP dialog")
 
                     amount_input = page.locator('.q-dialog input[type="number"]').first
-                    if amount_input.count() > 0:
-                        amount_input.fill("1")
-                        page.wait_for_timeout(200)
+                    assert amount_input.count() > 0, "Amount input not found in HP dialog"
+                    amount_input.fill("1")
+                    page.wait_for_timeout(200)
 
-                        damage_btn = page.locator('.q-dialog .q-btn:has-text("Damage")')
-                        if damage_btn.count() > 0 and damage_btn.first.is_enabled():
-                            damage_btn.first.click()
-                            page.wait_for_timeout(500)
-                            hp_after_damage = hp_display.inner_text()
-                            assert (
-                                hp_after_damage != hp_before
-                            ), f"HP did not change after damage (still {hp_before})"
-                            print(f"   [OK] HP damaged: {hp_before} -> {hp_after_damage}")
+                    damage_btn = page.locator('.q-dialog .q-btn:has-text("Damage")')
+                    assert damage_btn.count() > 0, "Damage button not found in HP dialog"
+                    assert damage_btn.first.is_enabled(), "Damage button is disabled"
+                    damage_btn.first.click()
+                    page.wait_for_timeout(500)
+                    hp_after_damage = hp_display.inner_text()
+                    assert (
+                        hp_after_damage != hp_before
+                    ), f"HP did not change after damage (still {hp_before})"
+                    print(f"   [OK] HP damaged: {hp_before} -> {hp_after_damage}")
 
-                            # Dialog closes after damage -- heal via + button
-                            click_increment(page, "HP")
-                            page.wait_for_timeout(500)
-                            hp_after_heal = hp_display.inner_text()
-                            assert (
-                                hp_after_heal == hp_before
-                            ), f"HP did not restore (expected {hp_before}, got {hp_after_heal})"
-                            print(f"   [OK] HP restored: {hp_after_damage} -> {hp_after_heal}")
-                        else:
-                            print("   [INFO] Damage button not available")
+                    # Dialog closes after damage -- heal via + button
+                    click_increment(page, "HP")
+                    page.wait_for_timeout(500)
+                    hp_after_heal = hp_display.inner_text()
+                    assert (
+                        hp_after_heal == hp_before
+                    ), f"HP did not restore (expected {hp_before}, got {hp_after_heal})"
+                    print(f"   [OK] HP restored: {hp_after_damage} -> {hp_after_heal}")
                 except PlaywrightTimeoutError:
                     print("   [INFO] HP dialog did not open")
             else:
@@ -188,7 +186,6 @@ def test_character_sheet():
             print(f"\n{step}. Testing condition toggling (Conditions tab)...")
             click_tab(page, "Conditions")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(500)
 
             slowed_label = "Toggle Slowed"
             slowed = page.locator(f'[aria-label="{slowed_label}"]')
@@ -202,7 +199,6 @@ def test_character_sheet():
 
                 click_aria_toggle(page, slowed_label)
                 wait_for_spinner_gone(page)
-                page.wait_for_timeout(500)
 
                 expected = "false" if initial_state == "true" else "true"
                 verify_aria_pressed(page, slowed_label, expected)
@@ -210,7 +206,6 @@ def test_character_sheet():
                 # Toggle back to restore
                 click_aria_toggle(page, slowed_label)
                 wait_for_spinner_gone(page)
-                page.wait_for_timeout(500)
                 verify_aria_pressed(page, slowed_label, initial_state)
                 print("   [OK] Slowed toggled on and off")
             else:
@@ -225,12 +220,10 @@ def test_character_sheet():
             print(f"\n{step}. Testing equipment dialog (Equipment tab)...")
             click_tab(page, "Equipment")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(500)
 
             edit_equip = page.locator('[aria-label="Edit equipment"]')
             if edit_equip.count() > 0:
                 edit_equip.first.click()
-                page.wait_for_timeout(500)
 
                 try:
                     wait_for_dialog(page)

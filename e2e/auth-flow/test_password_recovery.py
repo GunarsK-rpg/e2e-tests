@@ -6,11 +6,12 @@ Matches: ForgotPasswordPage.vue (email input, "Send Reset Link" submit, success 
          ResetPasswordPage.vue (no-token error state, "Request New Link" button)
 """
 
+import re
 import sys
 import time
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.common.config import get_config
 from e2e.common.helpers import (
@@ -62,12 +63,8 @@ def test_password_recovery():
             # Step 3: Submit empty form (validation)
             print("\n3. Testing empty form submission...")
             submit_form(page)
-            page.wait_for_timeout(300)
-            email_input = page.locator('input[type="email"]').first
-            is_invalid = email_input.evaluate(
-                "el => !el.validity.valid || el.closest('.q-field--error') !== null"
-            )
-            assert is_invalid, "Email input should be in invalid state after empty submission"
+            email_field = page.locator('.q-field:has(input[type="email"])').first
+            expect(email_field).to_have_class(re.compile(r"q-field--error"), timeout=5000)
             print("   [OK] Email validation shown")
             take_screenshot(page, "recovery_03_validation", "Empty form validation")
 
@@ -76,7 +73,6 @@ def test_password_recovery():
             fill_input(page, "Email", f"e2e_test_{unique_suffix}@example.com")
             submit_form(page)
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(1000)
             take_screenshot(page, "recovery_04_submitted", "After submission")
 
             # Step 5: Verify success state

@@ -73,8 +73,6 @@ def test_combat_encounter():
             # Step 2: Create combat
             print("\n2. Creating combat encounter...")
             click_button(page, "New Combat")
-            page.wait_for_timeout(500)
-
             wait_for_dialog(page)
             fill_input(page, "Name", combat_name)
             confirm_dialog(page, "Create")
@@ -151,14 +149,15 @@ def test_combat_encounter():
             # Step 9: Test phase toggle (click second option)
             # Scope to combat-level toggle (first on page, before NPC tile toggles)
             print("\n9. Testing phase toggle options...")
+            saved_phase = None
             phase_toggle = page.locator(".q-btn-toggle").first
             if phase_toggle.count() > 0:
                 toggle_btns = phase_toggle.locator(".q-btn")
                 if toggle_btns.count() > 1:
                     toggle_btns.nth(1).click()
                     page.wait_for_timeout(500)
-                    phase_value = toggle_btns.nth(1).inner_text().strip()
-                    print(f"   [OK] Phase toggled to: {phase_value}")
+                    saved_phase = toggle_btns.nth(1).inner_text().strip()
+                    print(f"   [OK] Phase toggled to: {saved_phase}")
                 else:
                     print("   [INFO] Only one phase option available")
             else:
@@ -197,12 +196,17 @@ def test_combat_encounter():
                 ), f"Turn not persisted (expected {saved_turn}, got {reloaded_turn})"
                 print(f"   [OK] Turn persisted: {reloaded_turn}")
 
-            # Verify phase persisted (second toggle button should still be active)
-            reloaded_phase = page.locator(".q-btn-toggle").first
-            if reloaded_phase.count() > 0:
-                active_btn = reloaded_phase.locator(".q-btn--active, .bg-primary")
-                if active_btn.count() > 0:
-                    print(f"   [OK] Phase persisted: {active_btn.first.inner_text().strip()}")
+            # Verify phase persisted
+            if saved_phase is not None:
+                reloaded_phase = page.locator(".q-btn-toggle").first
+                if reloaded_phase.count() > 0:
+                    active_btn = reloaded_phase.locator(".q-btn--active, .bg-primary")
+                    assert active_btn.count() > 0, "No active phase button after reload"
+                    reloaded_phase_text = active_btn.first.inner_text().strip()
+                    assert (
+                        reloaded_phase_text == saved_phase
+                    ), f"Phase not persisted (expected {saved_phase}, got {reloaded_phase_text})"
+                    print(f"   [OK] Phase persisted: {reloaded_phase_text}")
 
             print("   [OK] Combat state persisted")
 
@@ -272,14 +276,26 @@ def test_combat_encounter():
                 speed_toggle = npc_tile.locator(".turn-speed-toggle, .q-btn-toggle")
                 if speed_toggle.count() > 0:
                     speed_btns = speed_toggle.locator(".q-btn")
-                    if speed_btns.count() > 0:
-                        speed_btns.first.click()
-                        page.wait_for_timeout(300)
-                        # Verify the clicked button is now active
-                        btn_classes = speed_btns.first.get_attribute("class") or ""
-                        is_active = "q-btn--active" in btn_classes or "bg-primary" in btn_classes
-                        assert is_active, "Speed toggle button did not become active after click"
-                        print("   [OK] Turn speed toggled and active")
+                    if speed_btns.count() > 1:
+                        # Find a non-active button to click
+                        target_idx = None
+                        for idx in range(speed_btns.count()):
+                            cls = speed_btns.nth(idx).get_attribute("class") or ""
+                            if "q-btn--active" not in cls and "bg-primary" not in cls:
+                                target_idx = idx
+                                break
+                        if target_idx is not None:
+                            speed_btns.nth(target_idx).click()
+                            page.wait_for_timeout(300)
+                            new_cls = speed_btns.nth(target_idx).get_attribute("class") or ""
+                            assert (
+                                "q-btn--active" in new_cls or "bg-primary" in new_cls
+                            ), "Speed toggle button did not become active after click"
+                            print(f"   [OK] Turn speed toggled to button {target_idx}")
+                        else:
+                            print("   [INFO] All speed buttons already active")
+                    elif speed_btns.count() == 1:
+                        print("   [INFO] Only one speed button available")
                     else:
                         print("   [INFO] No speed toggle buttons found")
                 else:

@@ -10,7 +10,7 @@ Matches: ReviewStep.vue (data-testid="delete-hero-btn")
 import sys
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
@@ -25,6 +25,7 @@ from e2e.common.helpers import (
     print_test_summary,
     take_screenshot,
     verify_url_contains,
+    wait_for_dialog,
     wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
@@ -81,7 +82,8 @@ def test_character_deletion():
 
             # Step 5: Click Delete Character button
             print("\n5. Clicking Delete Character...")
-            click_button(page, "Delete Character", wait_ms=500)
+            click_button(page, "Delete Character")
+            wait_for_dialog(page)
             print("   [OK] Delete dialog opened")
             take_screenshot(page, "delete_05_dialog", "Delete dialog")
 
@@ -96,11 +98,8 @@ def test_character_deletion():
 
             # Step 7: Verify dialog closed
             print("\n7. Verifying dialog closed...")
-            dialog = page.locator(".q-dialog")
-            if dialog.count() == 0:
-                print("   [OK] Dialog closed")
-            else:
-                print("   [INFO] Dialog still visible")
+            expect(page.locator(".q-dialog")).to_have_count(0)
+            print("   [OK] Dialog closed")
 
             # Step 8: Verify redirected to characters list
             print("\n8. Verifying redirect...")
@@ -112,12 +111,8 @@ def test_character_deletion():
             wait_for_spinner_gone(page)
 
             remaining = page.locator(f'{HERO_CARD}:has-text("{card_name}")')
-            if remaining.count() == 0:
-                print(f"   [OK] '{card_name}' no longer in character list")
-            else:
-                take_screenshot(page, "delete_09_still_visible", "Still visible")
-                print(f"   [FAIL] '{card_name}' still visible in list")
-                return False
+            expect(remaining).to_have_count(0)
+            print(f"   [OK] '{card_name}' no longer in character list")
 
             print_test_summary(
                 "CHARACTER DELETION",

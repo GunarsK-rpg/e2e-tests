@@ -80,8 +80,8 @@ def test_account_settings():
             submit_form(page, wait_ms=500)
 
             username_field = page.locator(FIELD_BY_LABEL.format(label="Username")).first
-            has_error = username_field.locator(".q-field__messages").first
-            error_text = has_error.text_content() if has_error.count() > 0 else ""
+            error_locator = username_field.locator(".q-field__messages")
+            error_text = error_locator.first.text_content() if error_locator.count() > 0 else ""
             if "spaces" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
@@ -109,7 +109,7 @@ def test_account_settings():
             page.wait_for_timeout(300)
             submit_form(page, wait_ms=500)
 
-            error_text = has_error.text_content() if has_error.count() > 0 else ""
+            error_text = error_locator.first.text_content() if error_locator.count() > 0 else ""
             if "at least 3" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
