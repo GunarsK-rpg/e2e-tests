@@ -28,15 +28,13 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_text_visible,
     verify_url_contains,
+    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
 
 config = get_config()
 BASE_URL = config["web_url"]
-
-# Wait durations (ms) for UI transitions
-WAIT_SHORT = 500
 
 
 def test_campaign_crud():
@@ -74,6 +72,7 @@ def test_campaign_crud():
             print("\n3. Saving campaign...")
             click_button(page, "Create")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign created")
 
             # Step 4: Verify detail page
@@ -90,6 +89,7 @@ def test_campaign_crud():
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign updated")
 
             # Step 6: Verify update
@@ -99,9 +99,10 @@ def test_campaign_crud():
             # Step 7: Delete (trash button aria-label)
             print("\n7. Deleting campaign...")
             click_button_by_aria(page, "Delete campaign")
-            page.wait_for_timeout(WAIT_SHORT)
+            wait_for_dialog(page)
             confirm_dialog(page, "OK")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign deleted")
 
             # Step 8: Verify redirect

@@ -88,9 +88,11 @@ class TestRunner:
             (base / "auth-flow" / "test_register.py", "Registration Flow"),
             (base / "auth-flow" / "test_login.py", "Login Flow"),
             (base / "auth-flow" / "test_account.py", "Account Settings"),
+            (base / "auth-flow" / "test_password_recovery.py", "Password Recovery"),
             # Character tests
             (base / "characters" / "test_character_creation.py", "Character Creation"),
             (base / "characters" / "test_character_sheet.py", "Character Sheet"),
+            (base / "characters" / "test_character_editing.py", "Character Editing"),
             (base / "characters" / "test_character_deletion.py", "Character Deletion"),
             # Campaign tests
             (base / "campaigns" / "test_campaign_crud.py", "Campaign CRUD"),

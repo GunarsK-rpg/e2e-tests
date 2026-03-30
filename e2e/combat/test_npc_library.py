@@ -28,6 +28,7 @@ from e2e.common.helpers import (
     select_first_option,
     take_screenshot,
     verify_text_visible,
+    wait_for_dialog,
     wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
@@ -95,8 +96,7 @@ def test_npc_library():
             npc_selector = f'.q-item:has-text("{npc_name}")'
             if wait_for_element(page, npc_selector) == 0:
                 take_screenshot(page, "npc_04_not_found", "NPC not found")
-                print(f"   [FAIL] NPC not found: {npc_name}")
-                return False
+                raise AssertionError(f"NPC not found in list: {npc_name}")
             print(f"   [OK] NPC found: {npc_name}")
 
             take_screenshot(page, "npc_05_found", "NPC in list")
@@ -111,13 +111,13 @@ def test_npc_library():
             # Step 7: Edit NPC name
             print("\n7. Editing NPC...")
             click_button(page, "Edit")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             fill_input(page, "Name", updated_name)
             print(f"   [OK] Name changed to: {updated_name}")
 
             click_button(page, "Save")
-            page.wait_for_timeout(1000)
+            wait_for_spinner_gone(page)
             print("   [OK] NPC updated")
 
             # Step 8: Verify updated name (stays on detail page after edit-save)
@@ -127,7 +127,7 @@ def test_npc_library():
             # Step 9: Archive NPC
             print("\n9. Archiving NPC...")
             click_button(page, "Archive")
-            page.wait_for_timeout(500)
+            wait_for_dialog(page)
             confirm_dialog(page, "OK")
             print("   [OK] NPC archived")
 
@@ -145,7 +145,6 @@ def test_npc_library():
                     "NPC name edited",
                     "Updated name verified",
                     "NPC archived",
-                    "Campaign cleaned up",
                 ],
             )
             return True

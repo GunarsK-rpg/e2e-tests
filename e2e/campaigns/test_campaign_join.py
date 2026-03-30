@@ -11,13 +11,15 @@ import sys
 import time
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
     cleanup_test_campaign,
     click_button,
+    confirm_dialog,
     fill_input,
     fill_textarea,
     navigate_to,
@@ -25,6 +27,7 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_text_visible,
+    wait_for_dialog,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -93,16 +96,95 @@ def test_campaign_join():
             if char_cards.count() > 0:
                 print(f"   [OK] Existing character cards: {char_cards.count()}")
 
-            print_test_summary(
-                "CAMPAIGN JOIN",
-                [
-                    "Campaign created",
-                    "Invite link found",
-                    "Join page navigated",
-                    "Join page content verified",
-                    "Cleanup completed",
-                ],
-            )
+            # --- HERO ASSIGNMENT ---
+
+            # Step 5: Assign a character to the campaign
+            print("\n5. Assigning character to campaign...")
+            character_assigned = False
+            hero_removed = False
+            char_cards = page.locator('.card-interactive[role="button"]')
+            if char_cards.count() > 0:
+                char_cards.first.click()
+
+                # Confirm assignment if dialog appears
+                dialog_appeared = False
+                try:
+                    wait_for_dialog(page, timeout=3000)
+                    dialog_appeared = True
+                except PlaywrightTimeoutError:
+                    pass  # No dialog -- assignment may not require confirmation
+
+                if dialog_appeared:
+                    confirm_dialog(page, "OK")
+
+                wait_for_page_load(page)
+                wait_for_spinner_gone(page)
+                print("   [OK] Character assignment submitted")
+                take_screenshot(page, "join_05_assigned", "Character assigned")
+
+                # Step 6: Navigate to campaign detail to verify hero
+                print("\n6. Verifying hero in campaign detail...")
+                navigate_to(page, BASE_URL, "/campaigns")
+                wait_for_spinner_gone(page)
+
+                campaign_card = page.locator(f'.card-interactive:has-text("{campaign_name}")')
+                if campaign_card.count() == 0:
+                    raise AssertionError(f"Campaign '{campaign_name}' not found in list")
+                campaign_card.first.click()
+                wait_for_page_load(page)
+                wait_for_spinner_gone(page)
+
+                # Verify hero is shown on campaign detail
+                remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                assert (
+                    remove_locator.count() > 0
+                ), "Hero not visible on campaign detail after assignment"
+                character_assigned = True
+                print("   [OK] Hero confirmed on campaign detail")
+                take_screenshot(page, "join_06_detail", "Campaign with hero")
+
+                # --- HERO REMOVAL ---
+
+                # Step 7: Remove hero from campaign
+                print("\n7. Removing hero from campaign...")
+                remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                if remove_locator.count() > 0:
+                    remove_locator.first.click()
+
+                    # Step 8: Confirm removal dialog
+                    print("\n8. Confirming removal...")
+                    wait_for_dialog(page)
+                    verify_text_visible(page, "Remove Character")
+                    take_screenshot(page, "join_08_confirm", "Removal confirmation")
+                    confirm_dialog(page, "OK")
+                    wait_for_spinner_gone(page)
+                    hero_removed = True
+                    print("   [OK] Hero removed from campaign")
+
+                    # Step 9: Verify hero removed
+                    print("\n9. Verifying hero removed...")
+                    remaining = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                    expect(remaining).to_have_count(0)
+                    print("   [OK] No heroes remaining in campaign")
+                    take_screenshot(page, "join_09_removed", "Hero removed")
+                else:
+                    print("   [INFO] Remove button not found (may not be owner)")
+            else:
+                print("   [INFO] No characters available to assign")
+
+            summary_steps = [
+                "Campaign created",
+                "Invite link found",
+                "Join page navigated",
+                "Join page content verified",
+            ]
+            if character_assigned:
+                summary_steps.append("Character assigned to campaign")
+                summary_steps.append("Hero visible in campaign detail")
+            if hero_removed:
+                summary_steps.append("Hero removal confirmed")
+                summary_steps.append("Hero removed from campaign")
+            print_test_summary("CAMPAIGN JOIN", summary_steps)
             return True
 
         except Exception as e:
