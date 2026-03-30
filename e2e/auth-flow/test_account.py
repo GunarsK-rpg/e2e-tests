@@ -79,7 +79,7 @@ def test_account_settings():
             username_input.click()
             username_input.fill("user with spaces")
             wait_for_spinner_gone(page)
-            submit_form(page, wait_ms=500)
+            submit_form(page)
 
             username_field = page.locator(FIELD_BY_LABEL.format(label="Username")).first
             error_msg = username_field.locator(".q-field__messages")
@@ -111,7 +111,7 @@ def test_account_settings():
             username_input.click()
             username_input.fill("ab")
             wait_for_spinner_gone(page)
-            submit_form(page, wait_ms=500)
+            submit_form(page)
 
             # Wait for validation message to update from previous error
             error_text = wait_for_text_change(error_msg.first, old_error)

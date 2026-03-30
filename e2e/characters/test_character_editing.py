@@ -113,13 +113,9 @@ def test_character_editing():
             # Step 7: Click Finish to save
             print("\n7. Saving changes...")
             click_finish(page)
-            wait_for_spinner_gone(page)
 
             # Step 8: Verify redirect back to same character sheet
             print("\n8. Verifying redirect to character sheet...")
-            page.wait_for_url("**/characters/**", timeout=10000)
-            if "/edit" in page.url:
-                raise AssertionError(f"Still on edit page: {page.url}")
             assert (
                 page.url == character_url
             ), f"Redirected to wrong character: expected {character_url}, got {page.url}"

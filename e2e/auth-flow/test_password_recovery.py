@@ -90,7 +90,7 @@ def test_password_recovery():
             # Step 7: Verify "Request New Link" button navigates back
             print("\n7. Verifying navigation back to forgot password...")
             click_button(page, "Request New Link")
-            wait_for_page_load(page)
+            page.wait_for_url("**/forgot-password**", timeout=10000)
             verify_url_contains(page, "/forgot-password", "Back to forgot password")
 
             # Step 8: Verify login link from forgot password page

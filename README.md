@@ -141,9 +141,9 @@ By default, the registration test runs first and creates a fresh `e2e_test_<time
 e2e-tests/
 ├── e2e/
 │   ├── auth/                 # Auth manager and context persistence
-│   ├── auth-flow/            # Registration and login tests
+│   ├── auth-flow/            # Registration, login, account settings, password recovery
 │   ├── campaigns/            # Campaign CRUD and join tests
-│   ├── characters/           # Character creation, sheet, deletion
+│   ├── characters/           # Creation, sheet, editing, deletion
 │   ├── combat/               # NPC library and combat encounters
 │   └── common/               # Shared config, helpers, selectors
 ├── run_tests.py              # Test runner (ordered execution)
