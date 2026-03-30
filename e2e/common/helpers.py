@@ -127,10 +127,12 @@ def fill_textarea(page: Page, label: str, value: str) -> None:
 
 
 def fill_input_by_aria(page: Page, aria_label: str, value: str) -> None:
-    """Fill an input by its aria-label attribute. Raises if not found."""
+    """Fill an input by its aria-label attribute. Waits for field to appear."""
     input_el = page.locator(f'input[aria-label="{aria_label}"]').first
-    if input_el.count() == 0:
-        raise AssertionError(f"Input with aria-label '{aria_label}' not found")
+    try:
+        input_el.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"Input with aria-label '{aria_label}' not found") from exc
     input_el.click()
     input_el.fill(value or "")
     expect(input_el).to_have_value(value or "")
@@ -319,8 +321,10 @@ def open_dialog_and_select_first(page: Page, button_text: str, name: str) -> Non
     btn.click()
     wait_for_dialog(page)
     items = page.locator(LISTBOX_ITEM)
-    if items.count() == 0:
-        raise AssertionError(f"No {name} list items found")
+    try:
+        items.first.wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"No {name} list items found") from exc
     items.first.click()
     wait_for_spinner_gone(page)
     print(f"   [OK] {name} selected from list")
@@ -336,12 +340,13 @@ def open_dialog_and_select_first(page: Page, button_text: str, name: str) -> Non
 def click_first_listbox_item(page: Page, name: str) -> None:
     """Click the first item in a q-list with role='option' (path/kit dialogs)"""
     items = page.locator(LISTBOX_ITEM)
-    if items.count() > 0:
-        items.first.click()
-        wait_for_spinner_gone(page)
-        print(f"   [OK] {name} selected from list")
-        return
-    raise AssertionError(f"No {name} list items found")
+    try:
+        items.first.wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"No {name} list items found") from exc
+    items.first.click()
+    wait_for_spinner_gone(page)
+    print(f"   [OK] {name} selected from list")
 
 
 # ========================================

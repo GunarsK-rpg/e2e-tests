@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.12'
+  PYTHON_VERSION: '3.14'
   TRIGGER_REPO: ${{ github.event.repository.name }}
   RPG_WEB_URL: https://localhost:8543
   RPG_API_URL: https://localhost:8543/api/v1

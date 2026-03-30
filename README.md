@@ -18,7 +18,7 @@ task test:characters:creation     # Individual test suite
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.14+
 - Running services via Docker Compose
 
 Start services:
