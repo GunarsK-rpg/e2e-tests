@@ -448,14 +448,14 @@ def verify_input_value(page: Page, value: str, name: str, timeout: int = 5000) -
     print(f"   [OK] {name}: {value}")
 
 
-def wait_for_text_change(_page: Page, locator: Locator, old_text: str, timeout: int = 5000) -> str:
+def wait_for_text_change(locator: Locator, old_text: str, timeout: int = 5000) -> str:
     """Wait until a locator's inner_text differs from old_text. Returns the new text."""
     expect(locator).not_to_have_text(old_text, timeout=timeout)
     return locator.inner_text().strip()
 
 
 def wait_for_class_change(
-    _page: Page, locator: Locator, substring: str, want_present: bool, timeout: int = 5000
+    locator: Locator, substring: str, want_present: bool, timeout: int = 5000
 ) -> None:
     """Wait until a locator's class attribute contains (or stops containing) substring."""
     import re

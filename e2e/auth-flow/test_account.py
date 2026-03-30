@@ -114,7 +114,7 @@ def test_account_settings():
             submit_form(page, wait_ms=500)
 
             # Wait for validation message to update from previous error
-            error_text = wait_for_text_change(page, error_msg.first, old_error)
+            error_text = wait_for_text_change(error_msg.first, old_error)
             if "at least 3" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:

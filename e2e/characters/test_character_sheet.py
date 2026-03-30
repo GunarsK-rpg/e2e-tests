@@ -119,10 +119,10 @@ def test_character_sheet():
                 before = focus_value.inner_text()
 
                 click_decrement(page, "Focus")
-                after_dec = wait_for_text_change(page, focus_value, before)
+                after_dec = wait_for_text_change(focus_value, before)
 
                 click_increment(page, "Focus")
-                after_inc = wait_for_text_change(page, focus_value, after_dec)
+                after_inc = wait_for_text_change(focus_value, after_dec)
                 assert (
                     after_inc == before
                 ), f"Focus did not restore after increment (expected {before}, got {after_inc})"
@@ -153,12 +153,12 @@ def test_character_sheet():
                 assert damage_btn.count() > 0, "Damage button not found in HP dialog"
                 assert damage_btn.first.is_enabled(), "Damage button is disabled"
                 damage_btn.first.click()
-                hp_after_damage = wait_for_text_change(page, hp_display, hp_before)
+                hp_after_damage = wait_for_text_change(hp_display, hp_before)
                 print(f"   [OK] HP damaged: {hp_before} -> {hp_after_damage}")
 
                 # Dialog closes after damage -- heal via + button
                 click_increment(page, "HP")
-                hp_after_heal = wait_for_text_change(page, hp_display, hp_after_damage)
+                hp_after_heal = wait_for_text_change(hp_display, hp_after_damage)
                 assert (
                     hp_after_heal == hp_before
                 ), f"HP did not restore (expected {hp_before}, got {hp_after_heal})"

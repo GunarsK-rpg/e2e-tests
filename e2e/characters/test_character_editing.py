@@ -94,7 +94,11 @@ def test_character_editing():
             print("\n5. Modifying notes field...")
             edit_text = f"E2E edit test {unique_suffix}"
             fill_textarea(page, "Additional Notes", edit_text)
-            # Blur + wait for 300ms debounce to commit value to wizard store
+            # Blur triggers a 300ms debounce in PersonalDetailsStep.vue that
+            # commits the value to the wizard store. No DOM signal exists for
+            # this -- the debounce updates local state silently before
+            # saveCurrentStep() fires on tab navigation. 500ms covers the
+            # 300ms debounce with margin.
             page.keyboard.press("Tab")
             page.wait_for_timeout(500)
             print(f"   [OK] Notes updated: {edit_text}")
