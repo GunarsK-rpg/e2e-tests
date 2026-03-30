@@ -22,6 +22,8 @@ from e2e.common.helpers import (
     verify_element_exists,
     verify_text_visible,
     wait_for_page_load,
+    wait_for_spinner_gone,
+    wait_for_text_change,
 )
 
 config = get_config()
@@ -76,7 +78,7 @@ def test_account_settings():
             print("\n4. Testing username with spaces rejected...")
             username_input.click()
             username_input.fill("user with spaces")
-            page.wait_for_timeout(300)
+            wait_for_spinner_gone(page)
             submit_form(page, wait_ms=500)
 
             username_field = page.locator(FIELD_BY_LABEL.format(label="Username")).first
@@ -99,20 +101,20 @@ def test_account_settings():
             print("\n6. Restoring original username...")
             username_input.click()
             username_input.fill(original_username)
-            page.wait_for_timeout(300)
+            wait_for_spinner_gone(page)
             take_screenshot(page, "account_06_restored", "Username restored")
 
             # Step 7: Test short username validation
             print("\n7. Testing short username rejected...")
+            # Capture current error text so we can wait for it to change
+            old_error = error_msg.first.text_content() if error_msg.count() > 0 else ""
             username_input.click()
             username_input.fill("ab")
-            page.wait_for_timeout(300)
+            wait_for_spinner_gone(page)
             submit_form(page, wait_ms=500)
 
-            # Re-query for fresh DOM state
-            error_msg_7 = username_field.locator(".q-field__messages")
-            error_msg_7.first.wait_for(state="visible", timeout=5000)
-            error_text = error_msg_7.first.text_content()
+            # Wait for validation message to update from previous error
+            error_text = wait_for_text_change(page, error_msg.first, old_error)
             if "at least 3" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
@@ -123,7 +125,7 @@ def test_account_settings():
             print("\n8. Restoring username and checking Save button...")
             username_input.click()
             username_input.fill(original_username)
-            page.wait_for_timeout(300)
+            wait_for_spinner_gone(page)
 
             save_btn = page.locator('button[type="submit"]').first
             is_disabled = save_btn.get_attribute("disabled") is not None

@@ -31,10 +31,12 @@ from e2e.common.helpers import (
     take_screenshot,
     verify_element_exists,
     verify_input_value,
+    wait_for_class_change,
     wait_for_dialog,
     wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
+    wait_for_text_change,
 )
 
 config = get_config()
@@ -92,7 +94,7 @@ def test_combat_encounter():
                 npc_items = ".q-dialog .q-item--clickable"
                 if wait_for_element(page, npc_items) > 0:
                     page.locator(npc_items).first.click()
-                    page.wait_for_timeout(300)
+                    wait_for_spinner_gone(page)
                     confirm_dialog(page, "Add")
                     print("   [OK] NPC added")
                 else:
@@ -118,7 +120,7 @@ def test_combat_encounter():
             # Step 7: Test active toggle
             print("\n7. Testing active toggle...")
             click_button_if_visible(page, "Active")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             take_screenshot(page, "combat_07_state", "Combat state")
 
@@ -132,11 +134,12 @@ def test_combat_encounter():
                 turn_before = turn_display.inner_text().strip()
 
                 click_increment(page, "Turn")
-                page.wait_for_timeout(500)
+                turn_after = wait_for_text_change(page, turn_display, turn_before)
 
-                turn_after = turn_display.inner_text().strip()
-                before_int = int(turn_before) if turn_before.isdigit() else 0
-                after_int = int(turn_after) if turn_after.isdigit() else 0
+                assert turn_before.isdigit(), f"Turn before is not numeric: {turn_before}"
+                assert turn_after.isdigit(), f"Turn after is not numeric: {turn_after}"
+                before_int = int(turn_before)
+                after_int = int(turn_after)
                 assert (
                     after_int == before_int + 1
                 ), f"Turn did not increment (expected {before_int + 1}, got {after_int})"
@@ -155,7 +158,7 @@ def test_combat_encounter():
                 toggle_btns = phase_toggle.locator(".q-btn")
                 if toggle_btns.count() > 1:
                     toggle_btns.nth(1).click()
-                    page.wait_for_timeout(500)
+                    wait_for_class_change(page, toggle_btns.nth(1), "bg-primary", True)
                     saved_phase = toggle_btns.nth(1).inner_text().strip()
                     print(f"   [OK] Phase toggled to: {saved_phase}")
                 else:
@@ -229,17 +232,12 @@ def test_combat_encounter():
                 if hp_decrease.count() > 0 and hp_decrease.is_enabled():
                     hp_before = npc_hp_display.inner_text().strip()
                     hp_decrease.click()
-                    page.wait_for_timeout(500)
-                    hp_after_dec = npc_hp_display.inner_text().strip()
-                    assert (
-                        hp_after_dec != hp_before
-                    ), f"NPC HP did not change after decrease (still {hp_before})"
+                    hp_after_dec = wait_for_text_change(page, npc_hp_display, hp_before)
                     print(f"   [OK] NPC HP decreased: {hp_before} -> {hp_after_dec}")
 
                     if hp_increase.count() > 0 and hp_increase.is_enabled():
                         hp_increase.click()
-                        page.wait_for_timeout(500)
-                        hp_after_inc = npc_hp_display.inner_text().strip()
+                        hp_after_inc = wait_for_text_change(page, npc_hp_display, hp_after_dec)
                         assert (
                             hp_after_inc == hp_before
                         ), f"NPC HP did not restore (expected {hp_before}, got {hp_after_inc})"
@@ -255,28 +253,20 @@ def test_combat_encounter():
                 if turn_done_btn.count() > 0:
                     has_positive_before = "positive" in (turn_done_btn.get_attribute("class") or "")
                     turn_done_btn.click()
-                    page.wait_for_timeout(300)
-                    has_positive_after = "positive" in (turn_done_btn.get_attribute("class") or "")
-                    assert (
-                        has_positive_before != has_positive_after
-                    ), "Turn done state did not change after click"
-                    print(f"   [OK] Turn done toggled (positive={has_positive_after})")
+                    # Wait for class to flip
+                    want_positive = not has_positive_before
+                    wait_for_class_change(page, turn_done_btn, "positive", want_positive)
+                    print(f"   [OK] Turn done toggled (positive={want_positive})")
 
                     turn_done_btn.click()
-                    page.wait_for_timeout(300)
-                    has_positive_restored = "positive" in (
-                        turn_done_btn.get_attribute("class") or ""
-                    )
-                    assert (
-                        has_positive_restored == has_positive_before
-                    ), "Turn done did not restore after second click"
-                    print(f"   [OK] Turn done restored (positive={has_positive_restored})")
+                    wait_for_class_change(page, turn_done_btn, "positive", has_positive_before)
+                    print(f"   [OK] Turn done restored (positive={has_positive_before})")
                 else:
                     print("   [INFO] Turn done toggle not found")
 
                 # Step 13: Test turn speed toggle
                 print("\n13. Testing NPC turn speed toggle...")
-                speed_toggle = npc_tile.locator(".turn-speed-toggle, .q-btn-toggle")
+                speed_toggle = npc_tile.locator(".turn-speed-toggle, .q-btn-toggle").first
                 if speed_toggle.count() > 0:
                     speed_btns = speed_toggle.locator(".q-btn")
                     if speed_btns.count() > 1:
@@ -288,12 +278,9 @@ def test_combat_encounter():
                                 target_idx = idx
                                 break
                         if target_idx is not None:
-                            speed_btns.nth(target_idx).click()
-                            page.wait_for_timeout(300)
-                            new_cls = speed_btns.nth(target_idx).get_attribute("class") or ""
-                            assert (
-                                "q-btn--active" in new_cls or "bg-primary" in new_cls
-                            ), "Speed toggle button did not become active after click"
+                            target_btn = speed_btns.nth(target_idx)
+                            target_btn.click()
+                            wait_for_class_change(page, target_btn, "bg-primary", True)
                             print(f"   [OK] Turn speed toggled to button {target_idx}")
                         else:
                             print("   [INFO] All speed buttons already active")

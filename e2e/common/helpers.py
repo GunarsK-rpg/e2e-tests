@@ -438,13 +438,33 @@ def verify_url_contains(page: Page, path: str, description: Optional[str] = None
     raise AssertionError(f"Expected '{path}' in URL, got: {current_url}")
 
 
-def verify_input_value(page: Page, value: str, name: str) -> None:
-    """Assert input element contains expected value. Raises if not found."""
-    el = page.locator(f'input[value="{value}"]')
-    if el.count() > 0:
-        print(f"   [OK] {name}: {value}")
-        return
-    raise AssertionError(f"{name} not found in any input (expected value: {value})")
+def verify_input_value(page: Page, value: str, name: str, timeout: int = 5000) -> None:
+    """Assert input element contains expected value with auto-retry. Raises if not found."""
+    loc = page.locator(f'input[value="{value}"]')
+    try:
+        loc.first.wait_for(state="visible", timeout=timeout)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"{name} not found in any input (expected value: {value})") from exc
+    print(f"   [OK] {name}: {value}")
+
+
+def wait_for_text_change(_page: Page, locator: Locator, old_text: str, timeout: int = 5000) -> str:
+    """Wait until a locator's inner_text differs from old_text. Returns the new text."""
+    expect(locator).not_to_have_text(old_text, timeout=timeout)
+    return locator.inner_text().strip()
+
+
+def wait_for_class_change(
+    _page: Page, locator: Locator, substring: str, want_present: bool, timeout: int = 5000
+) -> None:
+    """Wait until a locator's class attribute contains (or stops containing) substring."""
+    import re
+
+    pattern = re.compile(rf".*{re.escape(substring)}.*")
+    if want_present:
+        expect(locator).to_have_attribute("class", pattern, timeout=timeout)
+    else:
+        expect(locator).not_to_have_attribute("class", pattern, timeout=timeout)
 
 
 def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 10000) -> int:

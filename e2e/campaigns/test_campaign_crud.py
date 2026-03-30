@@ -72,6 +72,7 @@ def test_campaign_crud():
             print("\n3. Saving campaign...")
             click_button(page, "Create")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign created")
 
             # Step 4: Verify detail page
@@ -88,6 +89,7 @@ def test_campaign_crud():
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign updated")
 
             # Step 6: Verify update
@@ -100,6 +102,7 @@ def test_campaign_crud():
             wait_for_dialog(page)
             confirm_dialog(page, "OK")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] Campaign deleted")
 
             # Step 8: Verify redirect

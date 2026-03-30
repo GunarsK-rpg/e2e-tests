@@ -111,7 +111,7 @@ def test_npc_library():
             # Step 7: Edit NPC name
             print("\n7. Editing NPC...")
             click_button(page, "Edit")
-            page.wait_for_timeout(500)
+            wait_for_spinner_gone(page)
 
             fill_input(page, "Name", updated_name)
             print(f"   [OK] Name changed to: {updated_name}")

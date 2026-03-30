@@ -91,7 +91,7 @@ def test_character_deletion():
             print("\n6. Confirming deletion...")
             page.locator(DELETE_CONFIRM_INPUT).first.click()
             page.locator(DELETE_CONFIRM_INPUT).first.fill("delete")
-            page.wait_for_timeout(300)
+            wait_for_spinner_gone(page)
             confirm_dialog(page, "Delete")
             wait_for_page_load(page)
             print("   [OK] Deletion confirmed")

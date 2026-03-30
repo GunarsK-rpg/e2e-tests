@@ -94,9 +94,9 @@ def test_character_editing():
             print("\n5. Modifying notes field...")
             edit_text = f"E2E edit test {unique_suffix}"
             fill_textarea(page, "Additional Notes", edit_text)
-            # Blur to trigger debounced save before navigating away
+            # Blur + wait for 300ms debounce to commit value to wizard store
             page.keyboard.press("Tab")
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(500)
             print(f"   [OK] Notes updated: {edit_text}")
 
             # Step 6: Navigate to Review and finish
@@ -132,12 +132,10 @@ def test_character_editing():
             wait_for_spinner_gone(page)
 
             # Expand Biography panel if collapsed
-            bio_header = page.locator(
-                '[aria-label="Biography section"] .q-item[role="button"]'
-            ).first
-            expanded = bio_header.get_attribute("aria-expanded")
-            if expanded != "true":
-                bio_header.click()
+            bio_section = page.locator('[aria-label="Biography section"]').first
+            bio_classes = bio_section.get_attribute("class") or ""
+            if "q-expansion-item--collapsed" in bio_classes:
+                bio_section.locator('.q-item[role="button"]').first.click()
                 wait_for_spinner_gone(page)
 
             verify_text_visible(page, edit_text)

@@ -13,7 +13,13 @@ import json
 from pathlib import Path
 
 from e2e.common.config import get_config
-from e2e.common.helpers import click_button, fill_input, take_screenshot, wait_for_page_load
+from e2e.common.helpers import (
+    click_button,
+    fill_input,
+    take_screenshot,
+    wait_for_page_load,
+    wait_for_spinner_gone,
+)
 
 AUTH_DIR = Path(__file__).parent / ".auth"
 TEST_USER_PATH = AUTH_DIR / "test_user.json"
@@ -109,7 +115,7 @@ class AuthManager:
         click_button(page, "Login")
 
         page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(1000)
+        wait_for_spinner_gone(page)
 
         if "/login" not in page.url:
             print("   [OK] Login successful")
