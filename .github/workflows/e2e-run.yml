@@ -41,20 +41,6 @@ jobs:
           repository: ${{ github.repository_owner }}/database
           path: rpg/database
 
-      - name: Checkout public-api
-        if: env.TRIGGER_REPO != 'public-api'
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.repository_owner }}/public-api
-          path: rpg/public-api
-
-      - name: Checkout public-web
-        if: env.TRIGGER_REPO != 'public-web'
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ github.repository_owner }}/public-web
-          path: rpg/public-web
-
       - name: Checkout RPG infrastructure
         uses: actions/checkout@v6
         with:
@@ -75,24 +61,12 @@ jobs:
           repository: ${{ github.repository_owner }}/e2e-tests
           path: rpg/e2e-tests
 
-      # -- Checkout portfolio repos (all public) --
+      # -- Checkout portfolio repos (infra + database for compose and migrations) --
       - name: Checkout portfolio infrastructure
         uses: actions/checkout@v6
         with:
           repository: GunarsK-portfolio/infrastructure
           path: portfolio/infrastructure
-
-      - name: Checkout portfolio auth-service
-        uses: actions/checkout@v6
-        with:
-          repository: GunarsK-portfolio/auth-service
-          path: portfolio/auth-service
-
-      - name: Checkout portfolio files-api
-        uses: actions/checkout@v6
-        with:
-          repository: GunarsK-portfolio/files-api
-          path: portfolio/files-api
 
       - name: Checkout portfolio database
         uses: actions/checkout@v6
@@ -157,31 +131,16 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Build portfolio images with cache --
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
+      # -- Pull portfolio images from ghcr.io --
+      - name: Pull auth-service image
+        run: |
+          docker pull "ghcr.io/gunarsk-portfolio/auth-service:latest"
+          docker tag "ghcr.io/gunarsk-portfolio/auth-service:latest" infrastructure-auth-service
 
-      - name: Build auth-service image (cached)
-        uses: docker/build-push-action@v6
-        with:
-          context: portfolio/auth-service
-          file: portfolio/auth-service/Dockerfile
-          load: true
-          tags: infrastructure-auth-service
-          cache-from: type=gha,scope=auth-service
-          cache-to: type=gha,mode=max,scope=auth-service
-
-      - name: Build files-api image (cached)
-        uses: docker/build-push-action@v6
-        with:
-          context: portfolio/files-api
-          file: portfolio/files-api/Dockerfile
-          load: true
-          tags: infrastructure-files-api
-          cache-from: type=gha,scope=files-api
-          cache-to: type=gha,mode=max,scope=files-api
+      - name: Pull files-api image
+        run: |
+          docker pull "ghcr.io/gunarsk-portfolio/files-api:latest"
+          docker tag "ghcr.io/gunarsk-portfolio/files-api:latest" infrastructure-files-api
 
       # -- Pull RPG images from ghcr.io --
       - name: Pull public-api image
