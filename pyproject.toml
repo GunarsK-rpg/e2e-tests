@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 100
-target-version = ['py312']
+target-version = ['py314']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -64,7 +64,7 @@ ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "C4", "UP", "ARG", "SIM"]
