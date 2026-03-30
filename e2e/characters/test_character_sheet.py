@@ -119,12 +119,22 @@ def test_character_sheet():
                 before = focus_value.inner_text()
 
                 click_decrement(page, "Focus")
-                page.wait_for_timeout(500)
+                page.wait_for_function(
+                    f'() => document.querySelector("button[aria-label=\\"Decrease Focus\\"]")'
+                    f'.parentElement.querySelector(".resource-value")'
+                    f'.innerText !== "{before}"',
+                    timeout=5000,
+                )
                 after_dec = focus_value.inner_text()
                 assert after_dec != before, f"Focus did not change after decrement (still {before})"
 
                 click_increment(page, "Focus")
-                page.wait_for_timeout(500)
+                page.wait_for_function(
+                    f'() => document.querySelector("button[aria-label=\\"Decrease Focus\\"]")'
+                    f'.parentElement.querySelector(".resource-value")'
+                    f'.innerText === "{before}"',
+                    timeout=5000,
+                )
                 after_inc = focus_value.inner_text()
                 assert (
                     after_inc == before

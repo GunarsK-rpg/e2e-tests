@@ -105,14 +105,17 @@ def test_campaign_join():
             char_cards = page.locator('.card-interactive[role="button"]')
             if char_cards.count() > 0:
                 char_cards.first.click()
-                page.wait_for_timeout(500)
 
                 # Confirm assignment if dialog appears
+                dialog_appeared = False
                 try:
                     wait_for_dialog(page, timeout=3000)
-                    confirm_dialog(page, "OK")
+                    dialog_appeared = True
                 except PlaywrightTimeoutError:
                     pass  # No dialog -- assignment may not require confirmation
+
+                if dialog_appeared:
+                    confirm_dialog(page, "OK")
 
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)

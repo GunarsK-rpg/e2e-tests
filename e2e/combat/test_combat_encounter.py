@@ -168,11 +168,11 @@ def test_combat_encounter():
             # Step 10: Test combat state persistence after reload
             print("\n10. Verifying state persistence...")
             # Capture current turn value before reload
-            turn_display_check = page.locator('button[aria-label="Increase Turn"]')
+            turn_btn_before = page.locator('button[aria-label="Increase Turn"]')
             saved_turn = None
-            if turn_display_check.count() > 0:
+            if turn_btn_before.count() > 0:
                 saved_turn = (
-                    turn_display_check.locator("xpath=..")
+                    turn_btn_before.locator("xpath=..")
                     .locator(".resource-value")
                     .first.inner_text()
                     .strip()
@@ -183,10 +183,13 @@ def test_combat_encounter():
             wait_for_spinner_gone(page)
             verify_input_value(page, combat_name, "Combat name after reload")
 
-            # Verify turn persisted
-            if saved_turn is not None and turn_display_check.count() > 0:
+            # Verify turn persisted (fresh locator after reload)
+            if saved_turn is not None:
+                turn_btn_after = page.locator('button[aria-label="Increase Turn"]')
+                if turn_btn_after.count() == 0:
+                    raise AssertionError("Turn button not found after reload")
                 reloaded_turn = (
-                    turn_display_check.locator("xpath=..")
+                    turn_btn_after.locator("xpath=..")
                     .locator(".resource-value")
                     .first.inner_text()
                     .strip()

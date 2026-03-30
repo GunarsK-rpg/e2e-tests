@@ -80,14 +80,14 @@ def test_account_settings():
             submit_form(page, wait_ms=500)
 
             username_field = page.locator(FIELD_BY_LABEL.format(label="Username")).first
-            error_locator = username_field.locator(".q-field__messages")
-            error_text = error_locator.first.text_content() if error_locator.count() > 0 else ""
+            error_msg = username_field.locator(".q-field__messages")
+            error_msg.first.wait_for(state="visible", timeout=5000)
+            error_text = error_msg.first.text_content()
             if "spaces" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
                 take_screenshot(page, "account_04_no_error", "Missing validation error")
-                print(f"   [FAIL] Expected spaces validation error, got: {error_text}")
-                return False
+                raise AssertionError(f"Expected spaces validation error, got: {error_text}")
 
             # Step 5: Verify form did not submit (still on account page)
             print("\n5. Verifying form did not submit...")
@@ -109,13 +109,15 @@ def test_account_settings():
             page.wait_for_timeout(300)
             submit_form(page, wait_ms=500)
 
-            error_text = error_locator.first.text_content() if error_locator.count() > 0 else ""
+            # Re-query for fresh DOM state
+            error_msg_7 = username_field.locator(".q-field__messages")
+            error_msg_7.first.wait_for(state="visible", timeout=5000)
+            error_text = error_msg_7.first.text_content()
             if "at least 3" in error_text.lower():
                 print(f"   [OK] Validation error shown: {error_text.strip()}")
             else:
                 take_screenshot(page, "account_07_no_error", "Missing validation error")
-                print(f"   [FAIL] Expected min length error, got: {error_text}")
-                return False
+                raise AssertionError(f"Expected min length error, got: {error_text}")
 
             # Step 8: Restore and verify Save button state
             print("\n8. Restoring username and checking Save button...")

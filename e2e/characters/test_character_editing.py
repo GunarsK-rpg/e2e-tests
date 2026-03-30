@@ -17,6 +17,7 @@ from playwright.sync_api import sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    BTN_FINISH,
     HERO_CARD,
     click_button_by_aria,
     click_finish,
@@ -86,7 +87,7 @@ def test_character_editing():
             print("\n4. Navigating to Personal Details step...")
             click_tab(page, "Details")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(500)
+            verify_element_exists(page, "textarea.q-field__native", "Details textarea")
             take_screenshot(page, "edit_04_personal", "Personal Details step")
 
             # Step 5: Modify notes field
@@ -102,7 +103,7 @@ def test_character_editing():
             print("\n6. Navigating to Review step...")
             click_tab(page, "Review")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(500)
+            verify_element_exists(page, BTN_FINISH, "Finish button")
             take_screenshot(page, "edit_06_review", "Review step")
 
             # Step 7: Click Finish to save
@@ -121,18 +122,23 @@ def test_character_editing():
             print("   [OK] Redirected to same character sheet")
             take_screenshot(page, "edit_08_saved", "Character saved")
 
-            # Step 9: Verify the edit persisted on Others tab > Biography
+            # Step 9: Verify the edit persisted after reload
             print("\n9. Verifying edit persisted...")
+            page.reload()
+            wait_for_page_load(page)
+            wait_for_spinner_gone(page)
+
             click_tab(page, "Others")
             wait_for_spinner_gone(page)
-            page.wait_for_timeout(500)
 
-            # Expand Biography panel -- click its header (role="button" inside the section)
+            # Expand Biography panel if collapsed
             bio_header = page.locator(
                 '[aria-label="Biography section"] .q-item[role="button"]'
             ).first
-            bio_header.click()
-            page.wait_for_timeout(500)
+            expanded = bio_header.get_attribute("aria-expanded")
+            if expanded != "true":
+                bio_header.click()
+                wait_for_spinner_gone(page)
 
             verify_text_visible(page, edit_text)
             print(f"   [OK] Notes text visible: {edit_text}")
