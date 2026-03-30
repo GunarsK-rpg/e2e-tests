@@ -142,22 +142,50 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Start services (parallel build + startup) --
-      - name: Start all services
-        run: |
-          # Start RPG build in background (the slow part: Go compile + Vue build)
-          (cd rpg/infrastructure && docker compose up -d --build) &
-          RPG_PID=$!
+      # -- Build RPG images with cache --
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
-          # Start portfolio services sequentially (traefik -> minio -> services)
+      # Portfolio must be running before RPG services start
+      - name: Start portfolio services
+        run: |
           cd portfolio/infrastructure
           docker compose up -d --no-deps traefik
           docker compose up minio-setup
           docker compose up -d auth-service files-api
           echo "Portfolio services started"
 
-          # Wait for RPG build to finish
-          wait $RPG_PID
+      - name: Build public-api image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: rpg/public-api
+          file: rpg/public-api/Dockerfile
+          load: true
+          tags: rpg-public-api
+          cache-from: type=gha,scope=public-api
+          cache-to: type=gha,mode=max,scope=public-api
+
+      - name: Build public-web image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: rpg/public-web
+          file: rpg/public-web/Dockerfile
+          load: true
+          tags: rpg-public-web
+          cache-from: type=gha,scope=public-web
+          cache-to: type=gha,mode=max,scope=public-web
+          build-args: |
+            VITE_API_URL=${{ env.RPG_API_URL }}
+            VITE_AUTH_URL=${{ env.AUTH_URL }}
+            VITE_FILES_API_URL=https://localhost:8443/files/v1
+
+      - name: Start RPG services
+        working-directory: rpg/infrastructure
+        run: |
+          # Images pre-built by buildx; compose will use them, only rebuilds if missing
+          docker compose up -d
           echo "RPG services started"
 
       # -- Health checks --
