@@ -101,12 +101,27 @@ jobs:
           cache: 'pip'
           cache-dependency-path: rpg/e2e-tests/requirements.txt
 
-      - name: Install E2E dependencies
+      - name: Install E2E Python dependencies
         working-directory: rpg/e2e-tests
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('rpg/e2e-tests/requirements.txt') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: rpg/e2e-tests
+        run: python -m playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
 
       # -- Environment setup --
       - name: Create .env files
@@ -127,20 +142,71 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Start services --
+      # -- Build all images with cache --
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      # -- Build all images with cache (portfolio + RPG) --
+      - name: Build auth-service image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: portfolio/auth-service
+          file: portfolio/auth-service/Dockerfile
+          load: true
+          tags: infrastructure-auth-service
+          cache-from: type=gha,scope=auth-service
+          cache-to: type=gha,mode=max,scope=auth-service
+
+      - name: Build files-api image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: portfolio/files-api
+          file: portfolio/files-api/Dockerfile
+          load: true
+          tags: infrastructure-files-api
+          cache-from: type=gha,scope=files-api
+          cache-to: type=gha,mode=max,scope=files-api
+
+      - name: Build public-api image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: rpg/public-api
+          file: rpg/public-api/Dockerfile
+          load: true
+          tags: rpg-public-api
+          cache-from: type=gha,scope=public-api
+          cache-to: type=gha,mode=max,scope=public-api
+
+      - name: Build public-web image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: rpg/public-web
+          file: rpg/public-web/Dockerfile
+          load: true
+          tags: rpg-public-web
+          cache-from: type=gha,scope=public-web
+          cache-to: type=gha,mode=max,scope=public-web
+          build-args: |
+            VITE_API_URL=${{ env.RPG_API_URL }}
+            VITE_AUTH_URL=${{ env.AUTH_URL }}
+            VITE_FILES_API_URL=https://localhost:8443/files/v1
+
+      # -- Start services (sequential: portfolio first, then RPG) --
       - name: Start portfolio services
         working-directory: portfolio/infrastructure
         run: |
           docker compose up -d --no-deps traefik
           docker compose up minio-setup
-          docker compose up -d auth-service files-api
-          echo "Portfolio services starting..."
+          docker compose up -d --no-build auth-service files-api
+          echo "Portfolio services started"
 
       - name: Start RPG services
         working-directory: rpg/infrastructure
         run: |
-          docker compose up -d --build
-          echo "RPG services starting..."
+          docker compose up -d --no-build
+          echo "RPG services started"
 
       # -- Health checks --
       - name: Wait for services to be healthy
