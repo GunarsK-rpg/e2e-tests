@@ -121,7 +121,7 @@ jobs:
 
       - name: Install Playwright system deps (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: python -m playwright install-deps chromium
 
       # -- Environment setup --
       - name: Create .env files
@@ -205,7 +205,7 @@ jobs:
       - name: Start RPG services
         working-directory: rpg/infrastructure
         run: |
-          docker compose up -d
+          docker compose up -d --no-build
           echo "RPG services started"
 
       # -- Health checks --
