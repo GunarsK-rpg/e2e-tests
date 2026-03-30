@@ -27,6 +27,7 @@ from e2e.common.helpers import (
     print_test_summary,
     select_first_option,
     take_screenshot,
+    verify_element_exists,
     verify_text_visible,
     wait_for_dialog,
     wait_for_element,
@@ -87,10 +88,14 @@ def test_npc_library():
             print("\n4. Saving NPC...")
             click_button(page, "Save")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
             print("   [OK] NPC saved")
 
             # Step 5: Search for NPC in virtual scroll list
             print("\n5. Searching for NPC...")
+            verify_element_exists(
+                page, '.q-field:has(.q-field__label:has-text("Search NPCs"))', "Search field"
+            )
             fill_input(page, "Search NPCs", npc_name)
 
             npc_selector = f'.q-item:has-text("{npc_name}")'
