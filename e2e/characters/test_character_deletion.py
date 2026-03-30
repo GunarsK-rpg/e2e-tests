@@ -69,14 +69,14 @@ def test_character_deletion():
 
             # Step 3: Enter edit mode (CharacterHeader.vue: aria-label="Edit character")
             print("\n3. Entering edit mode...")
-            click_button_by_aria(page, "Edit character", wait_ms=1000)
+            click_button_by_aria(page, "Edit character")
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             print("   [OK] Edit mode entered")
 
             # Step 4: Navigate to Review tab
             print("\n4. Navigating to Review step...")
-            click_tab(page, "Review", wait_ms=1000)
+            click_tab(page, "Review")
             wait_for_spinner_gone(page)
             print("   [OK] Review step opened")
 

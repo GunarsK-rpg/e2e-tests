@@ -5,6 +5,7 @@ Quasar-aware UI interaction helpers for the RPG frontend
 Selectors live here -- tests should call helpers, not build selectors.
 """
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -71,8 +72,6 @@ def wait_for_page_load(page: Page) -> None:
 
 def take_screenshot(page: Page, name: str, description: str = "") -> str:
     """Take a screenshot with consistent naming, grouped by test prefix"""
-    import re
-
     from e2e.common.config import get_config
 
     screenshot_dir = Path(get_config()["screenshot_dir"])
@@ -101,36 +100,42 @@ def wait_for_spinner_gone(page: Page, timeout: int = 10000) -> None:
 # ========================================
 
 
-def fill_input(page: Page, label: str, value: str, wait_ms: int = 200) -> None:
-    """Fill a q-input by its label text. Raises if field not found."""
+def fill_input(page: Page, label: str, value: str) -> None:
+    """Fill a q-input by its label text. Waits for field to appear."""
     field = page.locator(FIELD_BY_LABEL.format(label=label)).first
-    if field.count() == 0:
-        raise AssertionError(f"Input '{label}' not found")
+    try:
+        field.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"Input '{label}' not found") from exc
     input_el = field.locator("input.q-field__native").first
     input_el.click()
     input_el.fill(value or "")
-    page.wait_for_timeout(wait_ms)
+    expect(input_el).to_have_value(value or "")
 
 
-def fill_textarea(page: Page, label: str, value: str, wait_ms: int = 200) -> None:
-    """Fill a q-input[type=textarea] by its label text. Raises if not found."""
+def fill_textarea(page: Page, label: str, value: str) -> None:
+    """Fill a q-input[type=textarea] by its label text. Waits for field to appear."""
     field = page.locator(FIELD_BY_LABEL.format(label=label)).first
-    if field.count() == 0:
-        raise AssertionError(f"Textarea '{label}' not found")
+    try:
+        field.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"Textarea '{label}' not found") from exc
     textarea = field.locator("textarea.q-field__native").first
     textarea.click()
     textarea.fill(value or "")
-    page.wait_for_timeout(wait_ms)
+    expect(textarea).to_have_value(value or "")
 
 
-def fill_input_by_aria(page: Page, aria_label: str, value: str, wait_ms: int = 200) -> None:
-    """Fill an input by its aria-label attribute. Raises if not found."""
+def fill_input_by_aria(page: Page, aria_label: str, value: str) -> None:
+    """Fill an input by its aria-label attribute. Waits for field to appear."""
     input_el = page.locator(f'input[aria-label="{aria_label}"]').first
-    if input_el.count() == 0:
-        raise AssertionError(f"Input with aria-label '{aria_label}' not found")
+    try:
+        input_el.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"Input with aria-label '{aria_label}' not found") from exc
     input_el.click()
     input_el.fill(value or "")
-    page.wait_for_timeout(wait_ms)
+    expect(input_el).to_have_value(value or "")
 
 
 # ========================================
@@ -138,15 +143,14 @@ def fill_input_by_aria(page: Page, aria_label: str, value: str, wait_ms: int = 2
 # ========================================
 
 
-def select_first_option(page: Page, label: str, wait_ms: int = 300) -> None:
+def select_first_option(page: Page, label: str) -> None:
     """Click q-select by label, pick the first available option from menu"""
     field = page.locator(FIELD_BY_LABEL.format(label=label)).first
     field.click()
-    page.wait_for_timeout(wait_ms)
     menu = page.locator(".q-menu")
     menu.first.wait_for(state="visible", timeout=5000)
     menu.locator(".q-item").first.click()
-    page.wait_for_timeout(wait_ms)
+    expect(menu).to_have_count(0, timeout=5000)
 
 
 # ========================================
@@ -154,27 +158,23 @@ def select_first_option(page: Page, label: str, wait_ms: int = 300) -> None:
 # ========================================
 
 
-def submit_form(page: Page, wait_ms: int = 200) -> None:
+def submit_form(page: Page) -> None:
     """Click the form submit button (button[type=submit])"""
     page.locator('button[type="submit"]').first.click()
-    page.wait_for_timeout(wait_ms)
+    wait_for_spinner_gone(page)
 
 
-def click_button(page: Page, label: str, wait_ms: int = 200) -> None:
-    """Click a q-btn by label text"""
+def click_button(page: Page, label: str) -> None:
+    """Click a q-btn by label text. Caller must wait for the expected result."""
     page.locator(f'.q-btn:has-text("{label}")').first.click()
-    page.wait_for_timeout(wait_ms)
 
 
-def click_button_by_aria(page: Page, aria_label: str, wait_ms: int = 200) -> None:
-    """Click a button or link by its aria-label attribute"""
+def click_button_by_aria(page: Page, aria_label: str) -> None:
+    """Click a button or link by its aria-label attribute. Caller must wait."""
     page.locator(f'[aria-label="{aria_label}"]').first.click()
-    page.wait_for_timeout(wait_ms)
 
 
-def click_button_if_visible(
-    page: Page, label: str, timeout: int = 3000, wait_ms: int = 200
-) -> bool:
+def click_button_if_visible(page: Page, label: str, timeout: int = 3000) -> bool:
     """Wait for q-btn to appear, click if found. Returns whether clicked."""
     btn = page.locator(f'.q-btn:has-text("{label}")').first
     try:
@@ -182,7 +182,6 @@ def click_button_if_visible(
     except PlaywrightTimeoutError:
         return False
     btn.click()
-    page.wait_for_timeout(wait_ms)
     return True
 
 
@@ -191,18 +190,18 @@ def click_button_if_visible(
 # ========================================
 
 
-def click_next_step(page: Page, wait_ms: int = 500) -> None:
+def click_next_step(page: Page) -> None:
     """Click the Next step arrow button in wizard footer"""
     page.locator(BTN_NEXT_STEP).first.click()
-    page.wait_for_timeout(wait_ms)
     wait_for_spinner_gone(page)
 
 
-def click_finish(page: Page, wait_ms: int = 2000) -> None:
-    """Click the Finish button on the last wizard step"""
+def click_finish(page: Page) -> None:
+    """Click the Finish button and wait for redirect away from edit page"""
     page.locator(BTN_FINISH).first.click()
-    wait_for_page_load(page)
-    page.wait_for_timeout(wait_ms)
+    page.wait_for_url("**/characters/**", timeout=10000)
+    expect(page).not_to_have_url(re.compile(r"/edit"), timeout=10000)
+    wait_for_spinner_gone(page)
 
 
 # ========================================
@@ -210,12 +209,20 @@ def click_finish(page: Page, wait_ms: int = 2000) -> None:
 # ========================================
 
 
-def select_first_card(page: Page, name: str, wait_ms: int = 300) -> None:
+def select_first_card(page: Page, name: str) -> None:
     """Click the first unselected SelectableCard. Raises if none found."""
     cards = page.locator(SELECTABLE_CARD_UNSELECTED)
     if cards.count() > 0:
-        cards.first.click()
-        page.wait_for_timeout(wait_ms)
+        # Use nth(0) for a stable positional locator that won't shift
+        all_cards = page.locator(SELECTABLE_CARD)
+        first_idx = 0
+        for i in range(all_cards.count()):
+            cls = all_cards.nth(i).get_attribute("class") or ""
+            if "card-selected" not in cls:
+                first_idx = i
+                break
+        all_cards.nth(first_idx).click()
+        expect(all_cards.nth(first_idx)).to_have_attribute("aria-checked", "true", timeout=5000)
         print(f"   [OK] {name} selected")
         return
     all_cards = page.locator(SELECTABLE_CARD)
@@ -230,34 +237,34 @@ def select_first_card(page: Page, name: str, wait_ms: int = 300) -> None:
 # ========================================
 
 
-def click_increment(page: Page, name: str, wait_ms: int = 200) -> None:
+def click_increment(page: Page, name: str) -> None:
     """Click increment button by aria-label 'Increase {name}'"""
     btn = page.locator(BTN_INCREMENT.format(name=name)).first
     if btn.count() > 0:
         btn.click()
-        page.wait_for_timeout(wait_ms)
+        wait_for_spinner_gone(page)
         print(f"   [OK] Incremented {name}")
         return
     raise AssertionError(f"Cannot increment {name}: button not found")
 
 
-def click_increment_rank(page: Page, name: str, wait_ms: int = 200) -> None:
+def click_increment_rank(page: Page, name: str) -> None:
     """Click increment button by aria-label 'Increase {name} rank'"""
     btn = page.locator(BTN_INCREMENT_RANK.format(name=name)).first
     if btn.count() > 0:
         btn.click()
-        page.wait_for_timeout(wait_ms)
+        wait_for_spinner_gone(page)
         print(f"   [OK] Incremented {name} rank")
         return
     raise AssertionError(f"Cannot increment {name} rank: button not found")
 
 
-def click_decrement(page: Page, name: str, wait_ms: int = 200) -> None:
+def click_decrement(page: Page, name: str) -> None:
     """Click decrement button by aria-label 'Decrease {name}'"""
     btn = page.locator(BTN_DECREMENT.format(name=name)).first
     if btn.count() > 0:
         btn.click()
-        page.wait_for_timeout(wait_ms)
+        wait_for_spinner_gone(page)
         print(f"   [OK] Decremented {name}")
         return
     raise AssertionError(f"Cannot decrement {name}: button not found")
@@ -268,10 +275,11 @@ def click_decrement(page: Page, name: str, wait_ms: int = 200) -> None:
 # ========================================
 
 
-def click_tab(page: Page, tab_label: str, wait_ms: int = 300) -> None:
-    """Click a q-tab by label text"""
-    page.locator(f'.q-tab:has-text("{tab_label}")').first.click()
-    page.wait_for_timeout(wait_ms)
+def click_tab(page: Page, tab_label: str) -> None:
+    """Click a q-tab by label text and wait for it to become active"""
+    tab = page.locator(f'.q-tab:has-text("{tab_label}")').first
+    tab.click()
+    expect(tab).to_have_attribute("class", re.compile(r"q-tab--active"), timeout=5000)
 
 
 # ========================================
@@ -286,18 +294,18 @@ def wait_for_dialog(page: Page, timeout: int = 5000) -> Locator:
     return dialog
 
 
-def confirm_dialog(page: Page, button_label: str = "OK", wait_ms: int = 500) -> None:
-    """Click confirm button in dialog"""
-    dialog = page.locator(".q-dialog").first
-    dialog.locator(f'.q-btn:has-text("{button_label}")').first.click()
-    page.wait_for_timeout(wait_ms)
+def confirm_dialog(page: Page, button_label: str = "OK") -> None:
+    """Click confirm button in dialog and wait for it to close"""
+    dialog = page.locator(".q-dialog")
+    dialog.first.locator(f'.q-btn:has-text("{button_label}")').first.click()
+    expect(dialog).to_have_count(0, timeout=5000)
 
 
-def dismiss_dialog(page: Page, button_label: str = "Cancel", wait_ms: int = 300) -> None:
-    """Click cancel button in dialog"""
-    dialog = page.locator(".q-dialog").first
-    dialog.locator(f'.q-btn:has-text("{button_label}")').first.click()
-    page.wait_for_timeout(wait_ms)
+def dismiss_dialog(page: Page, button_label: str = "Cancel") -> None:
+    """Click cancel button in dialog and wait for it to close"""
+    dialog = page.locator(".q-dialog")
+    dialog.first.locator(f'.q-btn:has-text("{button_label}")').first.click()
+    expect(dialog).to_have_count(0, timeout=5000)
 
 
 # ========================================
@@ -305,39 +313,40 @@ def dismiss_dialog(page: Page, button_label: str = "Cancel", wait_ms: int = 300)
 # ========================================
 
 
-def open_dialog_and_select_first(
-    page: Page, button_text: str, name: str, wait_ms: int = 500
-) -> None:
+def open_dialog_and_select_first(page: Page, button_text: str, name: str) -> None:
     """Click button to open dialog, select first listbox item, close dialog"""
     btn = page.locator(f'.q-btn:has-text("{button_text}")').first
     if btn.count() == 0:
         raise AssertionError(f"{name} button not found")
     btn.click()
-    page.wait_for_timeout(wait_ms)
+    wait_for_dialog(page)
     items = page.locator(LISTBOX_ITEM)
-    if items.count() == 0:
-        raise AssertionError(f"No {name} list items found")
+    try:
+        items.first.wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"No {name} list items found") from exc
     items.first.click()
-    page.wait_for_timeout(300)
+    wait_for_spinner_gone(page)
     print(f"   [OK] {name} selected from list")
     # Close dialog if still open
-    done_btn = page.locator(
-        '.q-dialog .q-btn:has-text("Done"),' + ' .q-dialog .q-btn:has-text("Close")'
-    ).first
-    if done_btn.count() > 0:
-        done_btn.click()
-        page.wait_for_timeout(300)
+    dialog = page.locator(".q-dialog")
+    if dialog.count() > 0:
+        done_btn = dialog.first.locator('.q-btn:has-text("Done"), .q-btn:has-text("Close")').first
+        if done_btn.count() > 0:
+            done_btn.click()
+            expect(dialog).to_have_count(0, timeout=5000)
 
 
-def click_first_listbox_item(page: Page, name: str, wait_ms: int = 300) -> None:
+def click_first_listbox_item(page: Page, name: str) -> None:
     """Click the first item in a q-list with role='option' (path/kit dialogs)"""
     items = page.locator(LISTBOX_ITEM)
-    if items.count() > 0:
-        items.first.click()
-        page.wait_for_timeout(wait_ms)
-        print(f"   [OK] {name} selected from list")
-        return
-    raise AssertionError(f"No {name} list items found")
+    try:
+        items.first.wait_for(state="visible", timeout=5000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"No {name} list items found") from exc
+    items.first.click()
+    wait_for_spinner_gone(page)
+    print(f"   [OK] {name} selected from list")
 
 
 # ========================================
@@ -345,12 +354,18 @@ def click_first_listbox_item(page: Page, name: str, wait_ms: int = 300) -> None:
 # ========================================
 
 
-def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> None:
+def click_first_checkbox(page: Page, name: str) -> None:
     """Click the first unchecked q-checkbox"""
-    checkbox = page.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').first
-    if checkbox.count() > 0:
-        checkbox.click()
-        page.wait_for_timeout(wait_ms)
+    unchecked = page.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]')
+    if unchecked.count() > 0:
+        # Get aria-label for a stable locator that won't shift after check
+        label = unchecked.first.get_attribute("aria-label") or ""
+        unchecked.first.click()
+        if label:
+            target = page.locator(f'[aria-label="{label}"]').first
+            expect(target).to_have_attribute("aria-checked", "true", timeout=5000)
+        else:
+            wait_for_spinner_gone(page)
         print(f"   [OK] {name} checked")
         return
     any_cb = page.locator(EXPERTISE_CHECKBOX).first
@@ -365,13 +380,13 @@ def click_first_checkbox(page: Page, name: str, wait_ms: int = 200) -> None:
 # ========================================
 
 
-def click_aria_toggle(page: Page, aria_label: str, wait_ms: int = 200) -> None:
+def click_aria_toggle(page: Page, aria_label: str) -> None:
     """Click a toggle element by aria-label (conditions, switches). Raises if not found."""
     el = page.locator(f'[aria-label="{aria_label}"]').first
     if el.count() == 0:
         raise AssertionError(f"Toggle '{aria_label}' not found")
     el.click()
-    page.wait_for_timeout(wait_ms)
+    wait_for_spinner_gone(page)
 
 
 def verify_aria_pressed(page: Page, aria_label: str, expected: str) -> None:
@@ -397,7 +412,8 @@ def navigate_to(page: Page, base_url: str, path: str) -> None:
 def do_logout(page: Page) -> None:
     """Open account menu and click Logout"""
     page.locator(BTN_ACCOUNT_MENU).first.click()
-    page.wait_for_timeout(300)
+    menu = page.locator(".q-menu")
+    menu.first.wait_for(state="visible", timeout=5000)
     page.locator(MENU_LOGOUT).first.click()
     wait_for_page_load(page)
     page.wait_for_url("**/login**", timeout=10000)
@@ -419,13 +435,10 @@ def wait_for_element(page: Page, selector: str, timeout: int = 5000) -> int:
 
 
 def verify_text_visible(page: Page, text: str, timeout: int = 5000) -> None:
-    """Assert text is visible on page. Raises if not found."""
+    """Assert text is visible on page. Auto-retries until timeout."""
     element = page.locator(f'text="{text}"').first
-    if element.count() > 0:
-        expect(element).to_be_visible(timeout=timeout)
-        print(f"   [OK] Text visible: {text}")
-        return
-    raise AssertionError(f"Text not found: {text}")
+    expect(element).to_be_visible(timeout=timeout)
+    print(f"   [OK] Text visible: {text}")
 
 
 def verify_url_contains(page: Page, path: str, description: Optional[str] = None) -> None:
@@ -458,8 +471,6 @@ def wait_for_class_change(
     locator: Locator, substring: str, want_present: bool, timeout: int = 5000
 ) -> None:
     """Wait until a locator's class attribute contains (or stops containing) substring."""
-    import re
-
     pattern = re.compile(rf".*{re.escape(substring)}.*")
     if want_present:
         expect(locator).to_have_attribute("class", pattern, timeout=timeout)

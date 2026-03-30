@@ -23,22 +23,35 @@ tasks:
     cmds:
       - python e2e/auth-flow/test_register.py
       - python e2e/auth-flow/test_login.py
-
-  test:auth:login:
-    desc: Run login flow test
-    cmds:
-      - python e2e/auth-flow/test_login.py
+      - python e2e/auth-flow/test_account.py
+      - python e2e/auth-flow/test_password_recovery.py
 
   test:auth:register:
     desc: Run registration flow test
     cmds:
       - python e2e/auth-flow/test_register.py
 
+  test:auth:login:
+    desc: Run login flow test
+    cmds:
+      - python e2e/auth-flow/test_login.py
+
+  test:auth:account:
+    desc: Run account settings test
+    cmds:
+      - python e2e/auth-flow/test_account.py
+
+  test:auth:recovery:
+    desc: Run password recovery test
+    cmds:
+      - python e2e/auth-flow/test_password_recovery.py
+
   test:characters:
     desc: Run all character tests
     cmds:
       - python e2e/characters/test_character_creation.py
       - python e2e/characters/test_character_sheet.py
+      - python e2e/characters/test_character_editing.py
       - python e2e/characters/test_character_deletion.py
 
   test:characters:creation:
@@ -50,6 +63,11 @@ tasks:
     desc: Run character sheet test
     cmds:
       - python e2e/characters/test_character_sheet.py
+
+  test:characters:editing:
+    desc: Run character editing test
+    cmds:
+      - python e2e/characters/test_character_editing.py
 
   test:characters:deletion:
     desc: Run character deletion test

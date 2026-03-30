@@ -18,7 +18,7 @@ task test:characters:creation     # Individual test suite
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.14+
 - Running services via Docker Compose
 
 Start services:
@@ -39,14 +39,17 @@ task test:all:headless            # Run all tests headless
 task test:all:interactive         # Run with confirmation prompt
 
 # Auth tests
-task test:auth                    # Registration + Login
+task test:auth                    # All auth tests
 task test:auth:register           # Registration flow
 task test:auth:login              # Login flow
+task test:auth:account            # Account settings
+task test:auth:recovery           # Password recovery
 
 # Character tests
 task test:characters              # All character tests
 task test:characters:creation     # Character creation wizard
-task test:characters:sheet        # Character sheet tabs
+task test:characters:sheet        # Character sheet (tabs, resources, HP, conditions, equipment)
+task test:characters:editing      # Character editing via wizard
 task test:characters:deletion     # Character deletion
 
 # Campaign tests
@@ -57,7 +60,7 @@ task test:campaigns:join          # Campaign join via invite
 # Combat tests
 task test:combat                  # All combat tests
 task test:combat:npc              # NPC library
-task test:combat:encounter        # Combat encounter
+task test:combat:encounter        # Combat encounter (turn, phase, NPC HP, toggles)
 ```
 
 ### Code Quality
@@ -82,26 +85,29 @@ task list                         # List all test suites
 
 Tests run in order: registration creates the test user, then all subsequent tests authenticate with those credentials.
 
-### Auth Flow (2 suites)
+### Auth Flow (4 suites)
 
 - **Registration Flow** - Register new user, save credentials, verify login
 - **Login Flow** - Login, session persistence, unauthorized redirect, logout, access denied
+- **Account Settings** - Username validation (spaces, min length), save button state
+- **Password Recovery** - Empty form validation, email submission, reset page states, navigation
 
-### Character Tests (3 suites)
+### Character Tests (4 suites)
 
 - **Character Creation** - 10-step wizard: name, ancestry, culture, attributes, skills, expertises, paths, starting kit, equipment, personal details, review
-- **Character Sheet** - Tab navigation: Stats, Skills, Actions, Equipment, Talents, Expertises, Conditions, Companions, Others
-- **Character Deletion** - Edit mode, navigate to Review step, delete with confirmation
+- **Character Sheet** - Tab navigation, Focus/Investiture increment/decrement, HP management dialog (damage/heal), condition toggling, equipment dialog
+- **Character Editing** - Edit mode via wizard, modify notes, save via Finish, verify persistence after reload
+- **Character Deletion** - Edit mode, navigate to Review step, delete with confirmation, verify removal
 
 ### Campaign Tests (2 suites)
 
 - **Campaign CRUD** - Create, verify detail page, edit description, delete, verify redirect
-- **Campaign Join** - Create campaign, get invite link, navigate join page, verify content, cleanup
+- **Campaign Join** - Create campaign, get invite link, navigate join page, verify content, assign/remove hero, cleanup
 
 ### Combat Tests (2 suites)
 
 - **NPC Library** - Create campaign, create NPC (name, tier, type, size), search, edit name, archive, cleanup
-- **Combat Encounter** - Create campaign + combat, verify detail, add NPC via dialog, check tiles, phase toggle, active toggle, cleanup
+- **Combat Encounter** - Create combat, add NPC, turn counter increment, phase toggle with persistence, NPC HP decrease/increase, turn done toggle, speed toggle, state persistence after reload
 
 ## Authentication
 
@@ -135,9 +141,9 @@ By default, the registration test runs first and creates a fresh `e2e_test_<time
 e2e-tests/
 ├── e2e/
 │   ├── auth/                 # Auth manager and context persistence
-│   ├── auth-flow/            # Registration and login tests
+│   ├── auth-flow/            # Registration, login, account settings, password recovery
 │   ├── campaigns/            # Campaign CRUD and join tests
-│   ├── characters/           # Character creation, sheet, deletion
+│   ├── characters/           # Creation, sheet, editing, deletion
 │   ├── combat/               # NPC library and combat encounters
 │   └── common/               # Shared config, helpers, selectors
 ├── run_tests.py              # Test runner (ordered execution)

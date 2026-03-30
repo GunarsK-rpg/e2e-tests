@@ -62,8 +62,10 @@ def test_register_flow():
 
             # Step 3: Empty form validation
             print("\n3. Testing empty form validation...")
-            submit_form(page, wait_ms=500)
+            submit_form(page)
             expect(page).to_have_url(f"{BASE_URL}/register")
+            error_fields = page.locator(".q-field--error")
+            expect(error_fields.first).to_be_visible(timeout=5000)
             print("   [OK] Empty form rejected")
 
             # Step 4: Fill registration form

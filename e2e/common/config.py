@@ -58,7 +58,7 @@ class TestConfig:
         """Parse integer from string, returning default on failure"""
         try:
             return int(value)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return default
 
     def _parse_bool(self, value: Any) -> bool:
