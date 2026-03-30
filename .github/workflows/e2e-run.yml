@@ -101,12 +101,27 @@ jobs:
           cache: 'pip'
           cache-dependency-path: rpg/e2e-tests/requirements.txt
 
-      - name: Install E2E dependencies
+      - name: Install E2E Python dependencies
         working-directory: rpg/e2e-tests
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('rpg/e2e-tests/requirements.txt') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: rpg/e2e-tests
+        run: python -m playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       # -- Environment setup --
       - name: Create .env files
@@ -127,20 +142,23 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Start services --
-      - name: Start portfolio services
-        working-directory: portfolio/infrastructure
+      # -- Start services (parallel build + startup) --
+      - name: Start all services
         run: |
+          # Start RPG build in background (the slow part: Go compile + Vue build)
+          (cd rpg/infrastructure && docker compose up -d --build) &
+          RPG_PID=$!
+
+          # Start portfolio services sequentially (traefik -> minio -> services)
+          cd portfolio/infrastructure
           docker compose up -d --no-deps traefik
           docker compose up minio-setup
           docker compose up -d auth-service files-api
-          echo "Portfolio services starting..."
+          echo "Portfolio services started"
 
-      - name: Start RPG services
-        working-directory: rpg/infrastructure
-        run: |
-          docker compose up -d --build
-          echo "RPG services starting..."
+          # Wait for RPG build to finish
+          wait $RPG_PID
+          echo "RPG services started"
 
       # -- Health checks --
       - name: Wait for services to be healthy
