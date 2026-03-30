@@ -142,20 +142,32 @@ jobs:
             chmod 644 "$dir/localhost.crt" "$dir/localhost.key"
           done
 
-      # -- Build RPG images with cache --
+      # -- Build all images with cache --
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: network=host
 
-      # Portfolio must be running before RPG services start
-      - name: Start portfolio services
-        run: |
-          cd portfolio/infrastructure
-          docker compose up -d --no-deps traefik
-          docker compose up minio-setup
-          docker compose up -d auth-service files-api
-          echo "Portfolio services started"
+      # -- Build all images with cache (portfolio + RPG) --
+      - name: Build auth-service image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: portfolio/auth-service
+          file: portfolio/auth-service/Dockerfile
+          load: true
+          tags: infrastructure-auth-service
+          cache-from: type=gha,scope=auth-service
+          cache-to: type=gha,mode=max,scope=auth-service
+
+      - name: Build files-api image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: portfolio/files-api
+          file: portfolio/files-api/Dockerfile
+          load: true
+          tags: infrastructure-files-api
+          cache-from: type=gha,scope=files-api
+          cache-to: type=gha,mode=max,scope=files-api
 
       - name: Build public-api image (cached)
         uses: docker/build-push-action@v6
@@ -181,10 +193,18 @@ jobs:
             VITE_AUTH_URL=${{ env.AUTH_URL }}
             VITE_FILES_API_URL=https://localhost:8443/files/v1
 
+      # -- Start services (sequential: portfolio first, then RPG) --
+      - name: Start portfolio services
+        working-directory: portfolio/infrastructure
+        run: |
+          docker compose up -d --no-deps traefik
+          docker compose up minio-setup
+          docker compose up -d --no-build auth-service files-api
+          echo "Portfolio services started"
+
       - name: Start RPG services
         working-directory: rpg/infrastructure
         run: |
-          # Images pre-built by buildx; compose will use them, only rebuilds if missing
           docker compose up -d
           echo "RPG services started"
 
