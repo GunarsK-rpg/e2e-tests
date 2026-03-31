@@ -526,10 +526,8 @@ def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
 def verify_error_page(page: Page, expected_code: str, expected_title: str) -> None:
     """Verify an error page displays the expected code and title."""
     verify_element_exists(page, ERROR_CODE, "Error code")
-    code = page.locator(ERROR_CODE).first.inner_text().strip()
-    assert code == expected_code, f"Expected error code {expected_code}, got {code}"
-    title = page.locator(ERROR_TITLE).first.inner_text().strip()
-    assert title == expected_title, f"Expected '{expected_title}', got '{title}'"
+    expect(page.locator(ERROR_CODE).first).to_have_text(expected_code, timeout=5000)
+    expect(page.locator(ERROR_TITLE).first).to_have_text(expected_title, timeout=5000)
     print(f"   [OK] {expected_code} {expected_title}")
 
 
@@ -542,7 +540,7 @@ def expand_section(page: Page, aria_label: str) -> None:
     """Expand a q-expansion-item by aria-label if it is collapsed."""
     section = page.locator(f'[aria-label="{aria_label}"]')
     if section.count() == 0:
-        return
+        raise AssertionError(f"Section '{aria_label}' not found on {page.url}")
     el = section.first
     classes = el.get_attribute("class") or ""
     if "q-expansion-item--collapsed" in classes:

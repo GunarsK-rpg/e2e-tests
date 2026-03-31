@@ -123,7 +123,8 @@ def test_password_change():
             # Should show error message (from API)
             error_msg = pwd_card.locator(".text-negative")
             expect(error_msg.first).to_be_visible(timeout=10000)
-            error_text = error_msg.first.inner_text()
+            error_text = error_msg.first.inner_text().lower()
+            assert "password" in error_text, f"Expected password error, got: {error_text}"
             print(f"   [OK] Wrong password error: {error_text}")
 
             take_screenshot(page, "pwdchange_06_wrong", "Wrong current password")

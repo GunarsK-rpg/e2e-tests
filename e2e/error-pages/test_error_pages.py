@@ -7,6 +7,7 @@ Matches: ErrorNotFound.vue (.error-code "404", .error-title "Page Not Found")
          ErrorServer.vue (.error-code "500", .error-title "Server Error")
 """
 
+import re
 import sys
 import traceback
 
@@ -56,6 +57,7 @@ def test_error_pages():
             wait_for_spinner_gone(page)
             # Error page should disappear after navigation
             expect(page.locator(ERROR_CODE)).to_have_count(0, timeout=10000)
+            # 404 catch-all may not change URL on client-side nav
             print("   [OK] Back to Home navigates away from 404")
 
             # Step 3: Test 403 page
@@ -72,6 +74,7 @@ def test_error_pages():
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             expect(page.locator(ERROR_CODE)).to_have_count(0, timeout=10000)
+            expect(page).to_have_url(re.compile(r"/$"), timeout=10000)
             print("   [OK] Back to Home navigates away from 403")
 
             # Step 5: Test 500 page
@@ -88,6 +91,7 @@ def test_error_pages():
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             expect(page.locator(ERROR_CODE)).to_have_count(0, timeout=10000)
+            expect(page).to_have_url(re.compile(r"/$"), timeout=10000)
             print("   [OK] Back to Home navigates away from 500")
 
             take_screenshot(page, "error_06_done", "Test complete")

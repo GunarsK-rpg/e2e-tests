@@ -182,27 +182,20 @@ def test_character_creation():
             print(f"   [OK] Name persisted: {character_name}")
 
             # Attributes present (at least 6 cards)
-            attr_cards = page.locator(ATTRIBUTE_CARD)
-            assert (
-                attr_cards.count() >= 6
-            ), f"Expected 6+ attributes after reload, got {attr_cards.count()}"
-            print(f"   [OK] {attr_cards.count()} attribute cards after reload")
+            attr_count = verify_element_exists(page, ATTRIBUTE_CARD, "Attribute cards")
+            assert attr_count >= 6, f"Expected 6+ attributes after reload, got {attr_count}"
 
             # Skills tab has data
             click_tab(page, "Skills")
             wait_for_spinner_gone(page)
-            skill_items = page.locator(SKILL_ITEM)
-            assert (
-                skill_items.count() >= 10
-            ), f"Expected 10+ skills after reload, got {skill_items.count()}"
-            print(f"   [OK] {skill_items.count()} skills after reload")
+            skill_count = verify_element_exists(page, SKILL_ITEM, "Skill items")
+            assert skill_count >= 10, f"Expected 10+ skills after reload, got {skill_count}"
 
             # Expertises tab has chips
             click_tab(page, "Expertises")
             wait_for_spinner_gone(page)
-            exp_chips = page.locator(EXPERTISE_CHIP)
-            assert exp_chips.count() >= 1, "Expected at least 1 expertise chip after reload"
-            print(f"   [OK] {exp_chips.count()} expertise chips after reload")
+            exp_count = verify_element_exists(page, EXPERTISE_CHIP, "Expertise chips")
+            assert exp_count >= 1, f"Expected 1+ expertise chips after reload, got {exp_count}"
 
             # Talents tab has data (from path selection)
             click_tab(page, "Talents")

@@ -8,6 +8,7 @@ Matches: MyCharactersPage.vue (HeroCard with .card-interactive)
          CharacterHeader.vue (.text-h5.text-heading for name)
 """
 
+import re
 import sys
 import traceback
 
@@ -85,13 +86,14 @@ def test_character_sheet():
             active_tab_selector = ".q-tab--active .q-tab__label"
             if wait_for_element(page, active_tab_selector) == 0:
                 raise AssertionError("No default active tab found")
-            tab_text = page.locator(active_tab_selector).first.inner_text()
-            assert tab_text.upper() == "STATS", f"Expected active tab 'Stats', got '{tab_text}'"
-            print(f"   [OK] Active tab: {tab_text}")
+            active_tab = page.locator(active_tab_selector).first
+            expect(active_tab).to_have_text(re.compile(r"stats", re.IGNORECASE), timeout=5000)
+            print("   [OK] Active tab: Stats")
 
             # Step 4: Verify Stats tab content (attributes, defenses, derived stats)
             print("\n4. Verifying Stats tab content...")
 
+            wait_for_element(page, ATTRIBUTE_CARD)
             attr_cards = page.locator(ATTRIBUTE_CARD)
             attr_count = attr_cards.count()
             assert attr_count >= 6, f"Expected at least 6 attribute cards, got {attr_count}"
@@ -99,6 +101,7 @@ def test_character_sheet():
             assert len(first_abbr) >= 2, f"Attribute abbreviation too short: '{first_abbr}'"
             print(f"   [OK] {attr_count} attribute cards (first: {first_abbr})")
 
+            wait_for_element(page, DEFENSE_CARD)
             defense_cards = page.locator(DEFENSE_CARD)
             defense_count = defense_cards.count()
             assert defense_count >= 3, f"Expected at least 3 defense cards, got {defense_count}"
@@ -111,10 +114,12 @@ def test_character_sheet():
             click_tab(page, "Skills")
             wait_for_spinner_gone(page)
 
+            wait_for_element(page, SKILL_CATEGORY)
             skill_categories = page.locator(SKILL_CATEGORY)
             cat_count = skill_categories.count()
             assert cat_count >= 3, f"Expected at least 3 skill categories, got {cat_count}"
 
+            wait_for_element(page, SKILL_ITEM)
             skill_items = page.locator(SKILL_ITEM)
             skill_count = skill_items.count()
             assert skill_count >= 10, f"Expected at least 10 skills, got {skill_count}"
@@ -156,7 +161,8 @@ def test_character_sheet():
             elif no_talents.count() > 0:
                 print("   [OK] No talents state displayed")
             else:
-                print("   [INFO] Talents tab loaded (content varies)")
+                take_screenshot(page, "sheet_08_talents", "Talents tab unknown state")
+                raise AssertionError("Talents tab: neither populated nor empty state detected")
             take_screenshot(page, "sheet_08_talents", "Talents tab content")
 
             # Step 9: Verify Expertises tab content
@@ -164,6 +170,7 @@ def test_character_sheet():
             click_tab(page, "Expertises")
             wait_for_spinner_gone(page)
 
+            wait_for_element(page, EXPERTISE_SECTION)
             exp_sections = page.locator(EXPERTISE_SECTION)
             exp_count = exp_sections.count()
             assert exp_count >= 1, f"Expected at least 1 expertise category, got {exp_count}"
@@ -191,7 +198,8 @@ def test_character_sheet():
             elif no_comps.count() > 0:
                 print("   [OK] No companions state displayed")
             else:
-                print("   [INFO] Companions tab loaded")
+                take_screenshot(page, "sheet_11_companions", "Companions tab unknown state")
+                raise AssertionError("Companions tab: neither populated nor empty state detected")
             take_screenshot(page, "sheet_11_companions", "Companions tab")
 
             # Step 12: Verify Others tab

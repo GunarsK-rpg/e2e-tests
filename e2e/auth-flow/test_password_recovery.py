@@ -107,9 +107,13 @@ def test_password_recovery():
             wait_for_spinner_gone(page)
 
             # Should show error from API (expired/invalid token)
-            error_msg = page.locator(".text-negative")
+            reset_card = page.locator(".reset-card").first
+            error_msg = reset_card.locator(".text-negative")
             expect(error_msg.first).to_be_visible(timeout=10000)
-            error_text = error_msg.first.inner_text()
+            error_text = error_msg.first.inner_text().lower()
+            assert re.search(
+                r"(invalid|expired|failed)", error_text
+            ), f"Expected token error, got: {error_text}"
             print(f"   [OK] Invalid token error: {error_text}")
             take_screenshot(page, "recovery_08_invalid_token", "Invalid token error")
 

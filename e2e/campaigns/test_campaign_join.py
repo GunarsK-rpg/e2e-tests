@@ -119,7 +119,10 @@ def test_campaign_join():
 
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
-                print("   [OK] Character assignment submitted")
+
+                # Assignment redirects to character sheet -- verify redirect
+                page.wait_for_url("**/characters/**", timeout=10000)
+                print("   [OK] Character assignment submitted (redirected to sheet)")
                 take_screenshot(page, "join_05_assigned", "Character assigned")
 
                 # Step 6: Navigate to campaign detail to verify hero

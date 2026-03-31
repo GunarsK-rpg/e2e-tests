@@ -7,6 +7,7 @@ Matches: BasicSetupStep.vue (Character Name required, ancestry required)
          CharacterCreationPage.vue (step does not advance when invalid)
 """
 
+import re
 import sys
 import traceback
 
@@ -66,9 +67,7 @@ def test_wizard_validation():
 
             # Still on Basic Setup (step did not advance)
             active_tab = page.locator(".q-tab--active .q-tab__label").first
-            assert (
-                active_tab.inner_text().strip().upper() == "BASIC SETUP"
-            ), "Should still be on Basic Setup"
+            expect(active_tab).to_have_text(re.compile(r"basic setup", re.IGNORECASE), timeout=5000)
             print("   [OK] Step did not advance")
             take_screenshot(page, "validation_02_name_error", "Name validation")
 
@@ -76,19 +75,23 @@ def test_wizard_validation():
             print("\n3. Testing missing ancestry validation...")
             fill_input(page, "Character Name", "Validation Test")
 
+            # Force no ancestry selection by clearing any pre-selected cards
             selected = page.locator(".q-card[role='radio'].card-selected")
-            if selected.count() == 0:
-                page.locator(BTN_NEXT_STEP).first.click()
-                wait_for_spinner_gone(page)
-
-                # Should still be on Basic Setup
-                tab_text = (
-                    page.locator(".q-tab--active .q-tab__label").first.inner_text().strip().upper()
+            for i in range(selected.count()):
+                selected.nth(i).evaluate(
+                    "el => {"
+                    " el.classList.remove('card-selected');"
+                    " el.setAttribute('aria-checked', 'false');"
+                    " }"
                 )
-                assert tab_text == "BASIC SETUP", f"Expected Basic Setup, got {tab_text}"
-                print("   [OK] Missing ancestry blocks advancement")
-            else:
-                print("   [INFO] Ancestry pre-selected, skipping")
+
+            page.locator(BTN_NEXT_STEP).first.click()
+            wait_for_spinner_gone(page)
+
+            # Should still be on Basic Setup
+            active_tab = page.locator(".q-tab--active .q-tab__label").first
+            expect(active_tab).to_have_text(re.compile(r"basic setup", re.IGNORECASE), timeout=5000)
+            print("   [OK] Missing ancestry blocks advancement")
 
             # Step 4: Select ancestry and advance -- should succeed
             print("\n4. Selecting ancestry and advancing...")

@@ -13,7 +13,7 @@ import sys
 import time
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
@@ -92,17 +92,15 @@ def test_campaign_crud():
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
 
-            # Verify modifiers loaded in edit form
-            talents_field = (
-                page.locator('.q-field:has(.q-field__label:has-text("Talents"))')
-                .first.locator("input.q-field__native")
-                .first
-            )
-            talents_val = talents_field.input_value()
-            assert (
-                talents_val == "2"
-            ), f"Talents modifier not loaded (expected 2, got {talents_val})"
-            print("   [OK] Modifiers loaded in edit form")
+            # Verify all 3 modifiers loaded in edit form
+            for label, expected in [("Talents", "2"), ("Skill Ranks", "3"), ("Expertises", "1")]:
+                field = (
+                    page.locator(f'.q-field:has(.q-field__label:has-text("{label}"))')
+                    .first.locator("input.q-field__native")
+                    .first
+                )
+                expect(field).to_have_value(expected, timeout=10000)
+            print("   [OK] All 3 modifiers loaded in edit form")
 
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
