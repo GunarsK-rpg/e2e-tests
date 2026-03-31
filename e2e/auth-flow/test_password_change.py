@@ -75,9 +75,11 @@ def test_password_change():
             # Tab through all fields to trigger blur validation on each
             required_fields = ["Current Password", "New Password", "Confirm New Password"]
             for label in required_fields:
-                field = page.locator(
-                    FIELD_BY_LABEL.format(label=label)
-                ).first.locator("input.q-field__native").first
+                field = (
+                    page.locator(FIELD_BY_LABEL.format(label=label))
+                    .first.locator("input.q-field__native")
+                    .first
+                )
                 field.click()
             # Click away to trigger blur on last field
             page.locator("body").click()
@@ -87,9 +89,9 @@ def test_password_change():
             # Should show validation errors on all required fields
             error_fields = pwd_card.locator(".q-field--error")
             expect(error_fields.first).to_be_visible(timeout=5000)
-            assert error_fields.count() == len(required_fields), (
-                f"Expected {len(required_fields)} field errors, got {error_fields.count()}"
-            )
+            assert error_fields.count() == len(
+                required_fields
+            ), f"Expected {len(required_fields)} field errors, got {error_fields.count()}"
             for i in range(len(required_fields)):
                 expect(error_fields.nth(i)).to_be_visible()
             print(f"   [OK] All {len(required_fields)} required fields show validation errors")
