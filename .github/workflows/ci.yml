@@ -156,7 +156,7 @@ jobs:
               sys.exit(1)
           "
 
-  # Job 3: Dry Run - Compile all Python files
+  # Job 6: Dry Run - Compile all Python files
   test-dry-run:
     name: Test Dry Run
     runs-on: ubuntu-latest
