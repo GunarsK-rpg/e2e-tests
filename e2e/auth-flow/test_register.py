@@ -15,6 +15,7 @@ from playwright.sync_api import expect, sync_playwright
 from e2e.auth.auth_manager import AuthManager, save_test_user
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    FIELD_BY_LABEL,
     fill_input,
     navigate_to,
     print_test_summary,
@@ -62,11 +63,25 @@ def test_register_flow():
 
             # Step 3: Empty form validation
             print("\n3. Testing empty form validation...")
+            # Tab through all fields to trigger blur validation on each
+            required_fields = ["Username", "Email", "Password", "Confirm Password"]
+            for label in required_fields:
+                field = page.locator(
+                    FIELD_BY_LABEL.format(label=label)
+                ).first.locator("input.q-field__native").first
+                field.click()
+            # Click away to trigger blur on last field
+            page.locator("body").click()
             submit_form(page)
             expect(page).to_have_url(f"{BASE_URL}/register")
             error_fields = page.locator(".q-field--error")
             expect(error_fields.first).to_be_visible(timeout=5000)
-            print("   [OK] Empty form rejected")
+            assert error_fields.count() == len(required_fields), (
+                f"Expected {len(required_fields)} field errors, got {error_fields.count()}"
+            )
+            for i in range(len(required_fields)):
+                expect(error_fields.nth(i)).to_be_visible()
+            print(f"   [OK] All {len(required_fields)} required fields show validation errors")
 
             # Step 4: Fill registration form
             print("\n4. Filling registration form...")
@@ -102,8 +117,7 @@ def test_register_flow():
                 print("   [OK] Login successful")
             else:
                 take_screenshot(page, "register_06_login_fail", "Login failed")
-                print("   [FAIL] Could not login with new account")
-                return False
+                raise AssertionError("Could not login with new account")
 
             # Step 7: Save credentials for other tests
             print("\n7. Saving credentials...")
@@ -122,14 +136,13 @@ def test_register_flow():
                     "Credentials saved",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "register_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -137,5 +150,7 @@ def test_register_flow():
 
 
 if __name__ == "__main__":
-    success = test_register_flow()
-    sys.exit(0 if success else 1)
+    try:
+        test_register_flow()
+    except Exception:
+        sys.exit(1)

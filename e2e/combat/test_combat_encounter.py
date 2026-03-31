@@ -96,11 +96,12 @@ def test_combat_encounter():
             for attempt in range(2):
                 if not click_button_if_visible(page, "Add Enemy"):
                     break
+                wait_for_dialog(page)
                 if wait_for_element(page, npc_items_selector) == 0:
                     print("   [INFO] No NPCs available")
                     dismiss_dialog(page, "Cancel")
                     break
-                page.locator(npc_items_selector).nth(0).click()
+                page.locator(npc_items_selector).first.click()
                 wait_for_spinner_gone(page)
                 confirm_dialog(page, "Add")
                 npcs_added += 1
@@ -322,14 +323,13 @@ def test_combat_encounter():
                     "NPC turn speed toggle",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "combat_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if page is not None and campaign_name:
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
@@ -339,5 +339,7 @@ def test_combat_encounter():
 
 
 if __name__ == "__main__":
-    success = test_combat_encounter()
-    sys.exit(0 if success else 1)
+    try:
+        test_combat_encounter()
+    except Exception:
+        sys.exit(1)

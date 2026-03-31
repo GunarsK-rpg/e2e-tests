@@ -55,9 +55,9 @@ def test_error_pages():
             click_button(page, "Back to Home")
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
-            # Error page should disappear after navigation
+            # Error page should disappear and URL should be home
             expect(page.locator(ERROR_CODE)).to_have_count(0, timeout=10000)
-            # 404 catch-all may not change URL on client-side nav
+            expect(page).to_have_url(re.compile(r"/$"), timeout=10000)
             print("   [OK] Back to Home navigates away from 404")
 
             # Step 3: Test 403 page
@@ -107,14 +107,13 @@ def test_error_pages():
                     "500 Back to Home works",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "error_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -122,5 +121,7 @@ def test_error_pages():
 
 
 if __name__ == "__main__":
-    success = test_error_pages()
-    sys.exit(0 if success else 1)
+    try:
+        test_error_pages()
+    except Exception:
+        sys.exit(1)

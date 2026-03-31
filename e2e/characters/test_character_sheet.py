@@ -39,6 +39,7 @@ from e2e.common.helpers import (
     verify_element_exists,
     verify_url_contains,
     wait_for_dialog,
+    wait_for_either_visible,
     wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
@@ -150,19 +151,16 @@ def test_character_sheet():
             click_tab(page, "Talents")
             wait_for_spinner_gone(page)
 
-            # Talents tab uses q-tabs for path categories or shows "No talents acquired"
             talent_tabs = page.locator(TALENT_TAB)
             no_talents = page.locator('.talents-tab .text-empty:has-text("No talents")')
-            if talent_tabs.count() > 0:
+            state = wait_for_either_visible(talent_tabs, no_talents, "Talents tab")
+            if state == "populated":
                 first_tab_label = talent_tabs.first.inner_text().strip()
                 print(
                     f"   [OK] Talent categories: {talent_tabs.count()} (first: {first_tab_label})"
                 )
-            elif no_talents.count() > 0:
-                print("   [OK] No talents state displayed")
             else:
-                take_screenshot(page, "sheet_08_talents", "Talents tab unknown state")
-                raise AssertionError("Talents tab: neither populated nor empty state detected")
+                print("   [OK] No talents state displayed")
             take_screenshot(page, "sheet_08_talents", "Talents tab content")
 
             # Step 9: Verify Expertises tab content
@@ -193,13 +191,11 @@ def test_character_sheet():
 
             comp_tiles = page.locator(COMPANION_TILE)
             no_comps = page.locator('text="No companions yet."')
-            if comp_tiles.count() > 0:
+            state = wait_for_either_visible(comp_tiles, no_comps, "Companions tab")
+            if state == "populated":
                 print(f"   [OK] {comp_tiles.count()} companion tiles")
-            elif no_comps.count() > 0:
-                print("   [OK] No companions state displayed")
             else:
-                take_screenshot(page, "sheet_11_companions", "Companions tab unknown state")
-                raise AssertionError("Companions tab: neither populated nor empty state detected")
+                print("   [OK] No companions state displayed")
             take_screenshot(page, "sheet_11_companions", "Companions tab")
 
             # Step 12: Verify Others tab
@@ -362,14 +358,13 @@ def test_character_sheet():
                     "Equipment dialog",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "sheet_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -377,5 +372,7 @@ def test_character_sheet():
 
 
 if __name__ == "__main__":
-    success = test_character_sheet()
-    sys.exit(0 if success else 1)
+    try:
+        test_character_sheet()
+    except Exception:
+        sys.exit(1)

@@ -45,6 +45,7 @@ from e2e.common.helpers import (
     verify_element_exists,
     verify_text_visible,
     verify_url_contains,
+    wait_for_either_visible,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -197,15 +198,16 @@ def test_character_creation():
             exp_count = verify_element_exists(page, EXPERTISE_CHIP, "Expertise chips")
             assert exp_count >= 1, f"Expected 1+ expertise chips after reload, got {exp_count}"
 
-            # Talents tab has data (from path selection)
+            # Talents tab has data (from path selection) or shows empty state
             click_tab(page, "Talents")
             wait_for_spinner_gone(page)
             talent_tabs_loc = page.locator(TALENT_TAB)
-            if talent_tabs_loc.count() > 0:
+            no_talents = page.locator('.talents-tab .text-empty:has-text("No talents")')
+            state = wait_for_either_visible(talent_tabs_loc, no_talents, "Talents tab")
+            if state == "populated":
                 print(f"   [OK] {talent_tabs_loc.count()} talent categories after reload")
             else:
-                verify_element_exists(page, ".talents-tab", "Talents tab content")
-                print("   [OK] Talents tab content present after reload")
+                print("   [OK] No talents state displayed after reload")
 
             take_screenshot(page, "cc_12_persisted", "Data persisted after reload")
 
@@ -226,14 +228,13 @@ def test_character_creation():
                     "Data persists after reload (name, attrs, skills, expertises, talents)",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "cc_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -241,5 +242,7 @@ def test_character_creation():
 
 
 if __name__ == "__main__":
-    success = test_character_creation()
-    sys.exit(0 if success else 1)
+    try:
+        test_character_creation()
+    except Exception:
+        sys.exit(1)

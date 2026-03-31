@@ -118,14 +118,13 @@ def test_unauthorized_access():
                     "Forgot password page accessible without auth",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "unauth_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -133,5 +132,7 @@ def test_unauthorized_access():
 
 
 if __name__ == "__main__":
-    success = test_unauthorized_access()
-    sys.exit(0 if success else 1)
+    try:
+        test_unauthorized_access()
+    except Exception:
+        sys.exit(1)

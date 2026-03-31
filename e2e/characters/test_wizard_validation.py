@@ -16,7 +16,6 @@ from playwright.sync_api import expect, sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
-    BTN_NEXT_STEP,
     click_next_step,
     fill_input,
     navigate_to,
@@ -55,15 +54,13 @@ def test_wizard_validation():
 
             # Step 2: Click Next with empty name -- validation error in footer
             print("\n2. Testing empty name validation...")
-            page.locator(BTN_NEXT_STEP).first.click()
-            wait_for_spinner_gone(page)
+            click_next_step(page)
 
             # Footer shows "Name is required" in status-message
             status_msg = page.locator(STATUS_MESSAGE)
             expect(status_msg.first).to_be_visible(timeout=5000)
-            msg_text = status_msg.first.inner_text().strip()
-            assert "name" in msg_text.lower(), f"Expected name error, got: {msg_text}"
-            print(f"   [OK] Validation error: {msg_text}")
+            expect(status_msg.first).to_contain_text("name", ignore_case=True, timeout=5000)
+            print(f"   [OK] Validation error: {status_msg.first.inner_text()}")
 
             # Still on Basic Setup (step did not advance)
             active_tab = page.locator(".q-tab--active .q-tab__label").first
@@ -75,18 +72,8 @@ def test_wizard_validation():
             print("\n3. Testing missing ancestry validation...")
             fill_input(page, "Character Name", "Validation Test")
 
-            # Force no ancestry selection by clearing any pre-selected cards
-            selected = page.locator(".q-card[role='radio'].card-selected")
-            for i in range(selected.count()):
-                selected.nth(i).evaluate(
-                    "el => {"
-                    " el.classList.remove('card-selected');"
-                    " el.setAttribute('aria-checked', 'false');"
-                    " }"
-                )
-
-            page.locator(BTN_NEXT_STEP).first.click()
-            wait_for_spinner_gone(page)
+            # Form initializes with no ancestry selected
+            click_next_step(page)
 
             # Should still be on Basic Setup
             active_tab = page.locator(".q-tab--active .q-tab__label").first
@@ -117,14 +104,13 @@ def test_wizard_validation():
                     "Valid form advances to next step",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "validation_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -132,5 +118,7 @@ def test_wizard_validation():
 
 
 if __name__ == "__main__":
-    success = test_wizard_validation()
-    sys.exit(0 if success else 1)
+    try:
+        test_wizard_validation()
+    except Exception:
+        sys.exit(1)

@@ -506,6 +506,25 @@ def verify_element_exists(page: Page, selector: str, name: str, timeout: int = 1
     return count
 
 
+def wait_for_either_visible(
+    populated: Locator, empty: Locator, name: str, timeout: int = 5000
+) -> str:
+    """Wait for either populated or empty-state locator to become visible.
+
+    Returns 'populated' or 'empty'. Raises if neither appears.
+    """
+    try:
+        populated.first.wait_for(state="visible", timeout=timeout)
+        return "populated"
+    except PlaywrightTimeoutError:
+        pass
+    try:
+        empty.first.wait_for(state="visible", timeout=timeout // 2)
+        return "empty"
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"{name}: neither populated nor empty state detected") from exc
+
+
 def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
     """Assert text is NOT visible on page. Raises if any match is still visible."""
     locator = page.locator(f'text="{text}"')
@@ -539,8 +558,10 @@ def verify_error_page(page: Page, expected_code: str, expected_title: str) -> No
 def expand_section(page: Page, aria_label: str) -> None:
     """Expand a q-expansion-item by aria-label if it is collapsed."""
     section = page.locator(f'[aria-label="{aria_label}"]')
-    if section.count() == 0:
-        raise AssertionError(f"Section '{aria_label}' not found on {page.url}")
+    try:
+        section.first.wait_for(state="visible", timeout=10000)
+    except PlaywrightTimeoutError as exc:
+        raise AssertionError(f"Section '{aria_label}' not found on {page.url}") from exc
     el = section.first
     classes = el.get_attribute("class") or ""
     if "q-expansion-item--collapsed" in classes:
@@ -550,6 +571,7 @@ def expand_section(page: Page, aria_label: str) -> None:
             toggle.first.click()
         else:
             el.locator(".q-item").first.click()
+        wait_for_class_change(el, "q-expansion-item--collapsed", want_present=False)
         wait_for_spinner_gone(page)
 
 

@@ -145,14 +145,13 @@ def test_account_settings():
                     "Save button state correct",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "account_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -160,5 +159,7 @@ def test_account_settings():
 
 
 if __name__ == "__main__":
-    success = test_account_settings()
-    sys.exit(0 if success else 1)
+    try:
+        test_account_settings()
+    except Exception:
+        sys.exit(1)

@@ -67,10 +67,10 @@ def test_campaign_crud():
             fill_textarea(page, "Description", f"Test campaign {unique_suffix}")
 
             # Fill hero budget modifiers (CampaignFormPage.vue)
-            fill_input(page, "Talents", "2")
-            fill_input(page, "Skill Ranks", "3")
-            fill_input(page, "Expertises", "1")
-            print(f"   [OK] Name: {campaign_name}, modifiers: talents=2, skills=3, expertises=1")
+            modifiers = {"Talents": "2", "Skill Ranks": "3", "Expertises": "1"}
+            for label, value in modifiers.items():
+                fill_input(page, label, value)
+            print(f"   [OK] Name: {campaign_name}, modifiers: {modifiers}")
             take_screenshot(page, "campaign_02_form", "Campaign form with modifiers")
 
             # Step 3: Save
@@ -92,15 +92,15 @@ def test_campaign_crud():
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
 
-            # Verify all 3 modifiers loaded in edit form
-            for label, expected in [("Talents", "2"), ("Skill Ranks", "3"), ("Expertises", "1")]:
+            # Verify all modifiers loaded in edit form
+            for label, expected in modifiers.items():
                 field = (
                     page.locator(f'.q-field:has(.q-field__label:has-text("{label}"))')
                     .first.locator("input.q-field__native")
                     .first
                 )
                 expect(field).to_have_value(expected, timeout=10000)
-            print("   [OK] All 3 modifiers loaded in edit form")
+            print("   [OK] All modifiers loaded in edit form")
 
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
@@ -140,14 +140,13 @@ def test_campaign_crud():
                     "Redirect to campaigns list",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "campaign_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -155,5 +154,7 @@ def test_campaign_crud():
 
 
 if __name__ == "__main__":
-    success = test_campaign_crud()
-    sys.exit(0 if success else 1)
+    try:
+        test_campaign_crud()
+    except Exception:
+        sys.exit(1)

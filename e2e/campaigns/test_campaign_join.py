@@ -189,14 +189,13 @@ def test_campaign_join():
                 summary_steps.append("Hero removal confirmed")
                 summary_steps.append("Hero removed from campaign")
             print_test_summary("CAMPAIGN JOIN", summary_steps)
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "join_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if page is not None and campaign_name:
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
@@ -206,5 +205,7 @@ def test_campaign_join():
 
 
 if __name__ == "__main__":
-    success = test_campaign_join()
-    sys.exit(0 if success else 1)
+    try:
+        test_campaign_join()
+    except Exception:
+        sys.exit(1)

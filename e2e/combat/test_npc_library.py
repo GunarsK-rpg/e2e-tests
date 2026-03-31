@@ -152,14 +152,13 @@ def test_npc_library():
                     "NPC archived",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "npc_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if page is not None and campaign_name:
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
@@ -169,5 +168,7 @@ def test_npc_library():
 
 
 if __name__ == "__main__":
-    success = test_npc_library()
-    sys.exit(0 if success else 1)
+    try:
+        test_npc_library()
+    except Exception:
+        sys.exit(1)

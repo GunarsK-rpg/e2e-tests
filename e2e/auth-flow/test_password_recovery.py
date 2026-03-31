@@ -110,11 +110,10 @@ def test_password_recovery():
             reset_card = page.locator(".reset-card").first
             error_msg = reset_card.locator(".text-negative")
             expect(error_msg.first).to_be_visible(timeout=10000)
-            error_text = error_msg.first.inner_text().lower()
-            assert re.search(
-                r"(invalid|expired|failed)", error_text
-            ), f"Expected token error, got: {error_text}"
-            print(f"   [OK] Invalid token error: {error_text}")
+            expect(error_msg.first).to_contain_text(
+                re.compile(r"(invalid|expired|failed)", re.IGNORECASE), timeout=5000
+            )
+            print(f"   [OK] Invalid token error: {error_msg.first.inner_text()}")
             take_screenshot(page, "recovery_08_invalid_token", "Invalid token error")
 
             # Step 9: Verify login link from forgot password page
@@ -141,14 +140,13 @@ def test_password_recovery():
                     "Login link works",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "recovery_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -156,5 +154,7 @@ def test_password_recovery():
 
 
 if __name__ == "__main__":
-    success = test_password_recovery()
-    sys.exit(0 if success else 1)
+    try:
+        test_password_recovery()
+    except Exception:
+        sys.exit(1)

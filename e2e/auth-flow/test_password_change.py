@@ -16,6 +16,8 @@ from playwright.sync_api import expect, sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    FIELD_BY_LABEL,
+    fill_input,
     navigate_to,
     print_test_summary,
     take_screenshot,
@@ -70,43 +72,50 @@ def test_password_change():
             # Step 3: Test empty form submission
             print("\n3. Testing empty form validation...")
             submit_btn = pwd_card.locator('button[type="submit"]').first
+            # Tab through all fields to trigger blur validation on each
+            required_fields = ["Current Password", "New Password", "Confirm New Password"]
+            for label in required_fields:
+                field = page.locator(
+                    FIELD_BY_LABEL.format(label=label)
+                ).first.locator("input.q-field__native").first
+                field.click()
+            # Click away to trigger blur on last field
+            page.locator("body").click()
             submit_btn.click()
             wait_for_spinner_gone(page)
 
-            # Should show validation errors
+            # Should show validation errors on all required fields
             error_fields = pwd_card.locator(".q-field--error")
             expect(error_fields.first).to_be_visible(timeout=5000)
-            print("   [OK] Empty form shows validation errors")
+            assert error_fields.count() == len(required_fields), (
+                f"Expected {len(required_fields)} field errors, got {error_fields.count()}"
+            )
+            for i in range(len(required_fields)):
+                expect(error_fields.nth(i)).to_be_visible()
+            print(f"   [OK] All {len(required_fields)} required fields show validation errors")
             take_screenshot(page, "pwdchange_03_validation", "Empty form validation")
 
             # Step 4: Test password too short
             print("\n4. Testing short password validation...")
-            current_pwd = pwd_card.locator('input[autocomplete="current-password"]').first
-            new_pwd_inputs = pwd_card.locator('input[autocomplete="new-password"]')
-            new_pwd = new_pwd_inputs.first
-            confirm_pwd = new_pwd_inputs.nth(1)
-
-            current_pwd.fill("currentpass123")
-            new_pwd.fill("short")
-            confirm_pwd.fill("short")
+            fill_input(page, "Current Password", "currentpass123")
+            fill_input(page, "New Password", "short")
+            fill_input(page, "Confirm New Password", "short")
             submit_btn.click()
             wait_for_spinner_gone(page)
 
             # Check for "at least 8 characters" validation
-            pwd_field = new_pwd.locator("xpath=ancestor::*[contains(@class, 'q-field')]").first
+            pwd_field = page.locator(FIELD_BY_LABEL.format(label="New Password")).first
             expect(pwd_field).to_have_class(re.compile(r"q-field--error"), timeout=5000)
             print("   [OK] Short password shows validation error")
 
             # Step 5: Test password mismatch
             print("\n5. Testing password mismatch validation...")
-            new_pwd.fill("ValidPassword123")
-            confirm_pwd.fill("DifferentPassword123")
+            fill_input(page, "New Password", "ValidPassword123")
+            fill_input(page, "Confirm New Password", "DifferentPassword123")
             submit_btn.click()
             wait_for_spinner_gone(page)
 
-            confirm_field = confirm_pwd.locator(
-                "xpath=ancestor::*[contains(@class, 'q-field')]"
-            ).first
+            confirm_field = page.locator(FIELD_BY_LABEL.format(label="Confirm New Password")).first
             expect(confirm_field).to_have_class(re.compile(r"q-field--error"), timeout=5000)
             print("   [OK] Password mismatch shows validation error")
 
@@ -114,18 +123,19 @@ def test_password_change():
 
             # Step 6: Test wrong current password
             print("\n6. Testing wrong current password...")
-            current_pwd.fill("definitely_wrong_password")
-            new_pwd.fill("ValidPassword123")
-            confirm_pwd.fill("ValidPassword123")
+            fill_input(page, "Current Password", "definitely_wrong_password")
+            fill_input(page, "New Password", "ValidPassword123")
+            fill_input(page, "Confirm New Password", "ValidPassword123")
             submit_btn.click()
             wait_for_spinner_gone(page)
 
             # Should show error message (from API)
             error_msg = pwd_card.locator(".text-negative")
             expect(error_msg.first).to_be_visible(timeout=10000)
-            error_text = error_msg.first.inner_text().lower()
-            assert "password" in error_text, f"Expected password error, got: {error_text}"
-            print(f"   [OK] Wrong password error: {error_text}")
+            expect(error_msg.first).to_contain_text(
+                re.compile(r"(password|incorrect|invalid)", re.IGNORECASE), timeout=5000
+            )
+            print(f"   [OK] Wrong password error: {error_msg.first.inner_text()}")
 
             take_screenshot(page, "pwdchange_06_wrong", "Wrong current password")
 
@@ -140,14 +150,13 @@ def test_password_change():
                     "Wrong current password rejected by API",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "pwdchange_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -155,5 +164,7 @@ def test_password_change():
 
 
 if __name__ == "__main__":
-    success = test_password_change()
-    sys.exit(0 if success else 1)
+    try:
+        test_password_change()
+    except Exception:
+        sys.exit(1)
