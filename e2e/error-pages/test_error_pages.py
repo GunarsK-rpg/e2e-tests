@@ -10,12 +10,10 @@ Matches: ErrorNotFound.vue (.error-code "404", .error-title "Page Not Found")
 import sys
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
-from playwright.sync_api import expect
-
 from e2e.common.helpers import (
     ERROR_CODE,
     click_button,
