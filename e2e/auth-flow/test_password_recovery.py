@@ -93,13 +93,35 @@ def test_password_recovery():
             page.wait_for_url("**/forgot-password**", timeout=10000)
             verify_url_contains(page, "/forgot-password", "Back to forgot password")
 
-            # Step 8: Verify login link from forgot password page
-            print("\n8. Verifying login link...")
+            # Step 8: Test reset page with invalid token
+            print("\n8. Testing reset page with invalid token...")
+            navigate_to(page, BASE_URL, "/reset-password?token=invalid_expired_token")
+            wait_for_page_load(page)
+            wait_for_spinner_gone(page)
+
+            # Should show password form (token is present but invalid)
+            verify_text_visible(page, "Set New Password")
+            fill_input(page, "New Password", "NewTestPass123")
+            fill_input(page, "Confirm Password", "NewTestPass123")
+            submit_form(page)
+            wait_for_spinner_gone(page)
+
+            # Should show error from API (expired/invalid token)
+            error_msg = page.locator(".text-negative")
+            expect(error_msg.first).to_be_visible(timeout=10000)
+            error_text = error_msg.first.inner_text()
+            print(f"   [OK] Invalid token error: {error_text}")
+            take_screenshot(page, "recovery_08_invalid_token", "Invalid token error")
+
+            # Step 9: Verify login link from forgot password page
+            print("\n9. Verifying login link...")
+            navigate_to(page, BASE_URL, "/forgot-password")
+            wait_for_page_load(page)
             page.locator('a:has-text("Back to Login")').first.click()
             page.wait_for_url("**/login**", timeout=10000)
             verify_url_contains(page, "/login", "Login page")
 
-            take_screenshot(page, "recovery_08_done", "Test complete")
+            take_screenshot(page, "recovery_09_done", "Test complete")
 
             print_test_summary(
                 "PASSWORD RECOVERY",
@@ -111,6 +133,7 @@ def test_password_recovery():
                     "Success message displayed",
                     "Reset page shows no-token error",
                     "Request New Link navigates back",
+                    "Invalid token rejected by API",
                     "Login link works",
                 ],
             )

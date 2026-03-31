@@ -134,8 +134,9 @@ def test_campaign_join():
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
 
-                # Verify hero is shown on campaign detail
+                # Verify hero is shown on campaign detail (wait for async load)
                 remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                remove_locator.first.wait_for(state="visible", timeout=10000)
                 assert (
                     remove_locator.count() > 0
                 ), "Hero not visible on campaign detail after assignment"

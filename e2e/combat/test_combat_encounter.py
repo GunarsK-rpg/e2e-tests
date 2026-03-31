@@ -88,28 +88,36 @@ def test_combat_encounter():
             verify_input_value(page, combat_name, "Combat name")
             take_screenshot(page, "combat_03_detail", "Combat detail")
 
-            # Step 4: Add NPC via dialog (items use role="listitem", not "option")
-            print("\n4. Adding NPC to combat...")
-            if click_button_if_visible(page, "Add Enemy"):
-                npc_items = ".q-dialog .q-item--clickable"
-                if wait_for_element(page, npc_items) > 0:
-                    page.locator(npc_items).first.click()
-                    wait_for_spinner_gone(page)
-                    confirm_dialog(page, "Add")
-                    print("   [OK] NPC added")
-                else:
+            # Step 4: Add NPCs via dialog (attempt two for multi-NPC testing)
+            print("\n4. Adding NPCs to combat...")
+            npcs_added = 0
+            npc_items_selector = ".q-dialog .q-item--clickable"
+
+            for attempt in range(2):
+                btn_label = "Add Enemy" if attempt == 0 else "Add Enemy"
+                if not click_button_if_visible(page, btn_label):
+                    break
+                if wait_for_element(page, npc_items_selector) == 0:
                     print("   [INFO] No NPCs available")
                     dismiss_dialog(page, "Cancel")
-            else:
-                print("   [INFO] Add Enemy button not found")
+                    break
+                # Select the first available NPC in the dialog
+                page.locator(npc_items_selector).first.click()
+                wait_for_spinner_gone(page)
+                confirm_dialog(page, "Add")
+                npcs_added += 1
+                print(f"   [OK] NPC {npcs_added} added")
 
             take_screenshot(page, "combat_04_npc", "After NPC add")
 
-            # Step 5: Verify combat tiles (only if NPCs were added)
+            # Step 5: Verify combat tiles
             print("\n5. Checking combat participants...")
             npc_tiles = page.locator(".combat-npc-tile")
-            if npc_tiles.count() > 0:
-                verify_element_exists(page, ".combat-npc-tile", "Combat NPC tiles")
+            tile_count = npc_tiles.count()
+            if tile_count > 0:
+                print(f"   [OK] {tile_count} combat NPC tiles present")
+                if tile_count >= 2:
+                    print("   [OK] Multi-NPC scenario verified")
             else:
                 print("   [INFO] No combat NPC tiles (no NPCs were added)")
 

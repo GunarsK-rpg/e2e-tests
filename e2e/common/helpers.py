@@ -56,6 +56,22 @@ EXPERTISE_CHECKBOX = ".q-checkbox"
 # Listbox items in dialogs (paths, starting kits, radiant orders)
 LISTBOX_ITEM = '.q-item[role="option"]'
 
+# Character sheet tab content (StatsTab, SkillsTab, TalentsTab, ExpertisesTab, CompanionsTab)
+ATTRIBUTE_CARD = ".attribute-card"
+DEFENSE_CARD = ".defense-card"
+SKILL_CATEGORY = ".skill-category"
+SKILL_ITEM = ".skills-tab .q-item"
+SKILL_ITEM_LABEL = ".q-item__label"
+SKILL_PIP_FILLED = ".skills-tab .pip.filled"
+TALENT_TAB = ".talents-tab .q-tab"
+EXPERTISE_SECTION = ".expertises-tab .category-section"
+EXPERTISE_CHIP = ".expertises-tab .q-chip"
+COMPANION_TILE = ".combat-npc-tile"
+
+# Error pages (ErrorNotFound, ErrorForbidden, ErrorServer)
+ERROR_CODE = ".error-code"
+ERROR_TITLE = ".error-title"
+
 # Spinners
 SPINNER = ".q-spinner-dots, .q-spinner, .q-loading"
 
@@ -500,6 +516,43 @@ def verify_text_not_visible(page: Page, text: str, timeout: int = 3000) -> None:
         except AssertionError as exc:
             raise AssertionError(f"Text still visible: {text} (match {i})") from exc
     print(f"   [OK] Text not visible: {text}")
+
+
+# ========================================
+# ERROR PAGE HELPERS
+# ========================================
+
+
+def verify_error_page(page: Page, expected_code: str, expected_title: str) -> None:
+    """Verify an error page displays the expected code and title."""
+    verify_element_exists(page, ERROR_CODE, "Error code")
+    code = page.locator(ERROR_CODE).first.inner_text().strip()
+    assert code == expected_code, f"Expected error code {expected_code}, got {code}"
+    title = page.locator(ERROR_TITLE).first.inner_text().strip()
+    assert title == expected_title, f"Expected '{expected_title}', got '{title}'"
+    print(f"   [OK] {expected_code} {expected_title}")
+
+
+# ========================================
+# EXPANSION PANEL HELPERS
+# ========================================
+
+
+def expand_section(page: Page, aria_label: str) -> None:
+    """Expand a q-expansion-item by aria-label if it is collapsed."""
+    section = page.locator(f'[aria-label="{aria_label}"]')
+    if section.count() == 0:
+        return
+    el = section.first
+    classes = el.get_attribute("class") or ""
+    if "q-expansion-item--collapsed" in classes:
+        # Click the expansion header toggle
+        toggle = el.locator(".q-expansion-item__toggle")
+        if toggle.count() > 0:
+            toggle.first.click()
+        else:
+            el.locator(".q-item").first.click()
+        wait_for_spinner_gone(page)
 
 
 # ========================================

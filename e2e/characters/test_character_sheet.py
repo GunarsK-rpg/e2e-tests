@@ -16,7 +16,17 @@ from playwright.sync_api import expect, sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    ATTRIBUTE_CARD,
+    COMPANION_TILE,
+    DEFENSE_CARD,
+    EXPERTISE_CHIP,
+    EXPERTISE_SECTION,
     HERO_CARD,
+    SKILL_CATEGORY,
+    SKILL_ITEM,
+    SKILL_ITEM_LABEL,
+    SKILL_PIP_FILLED,
+    TALENT_TAB,
     click_aria_toggle,
     click_decrement,
     click_increment,
@@ -36,19 +46,6 @@ from e2e.common.helpers import (
 
 config = get_config()
 BASE_URL = config["web_url"]
-
-# Tab labels from CharacterSheetPage.vue (as rendered in .q-tab__label)
-# Stats is default/active, so we skip it and start from Skills
-SHEET_TABS = [
-    "Skills",
-    "Actions",
-    "Equipment",
-    "Talents",
-    "Expertises",
-    "Conditions",
-    "Companions",
-    "Others",
-]
 
 
 def test_character_sheet():
@@ -92,22 +89,122 @@ def test_character_sheet():
             assert tab_text.upper() == "STATS", f"Expected active tab 'Stats', got '{tab_text}'"
             print(f"   [OK] Active tab: {tab_text}")
 
-            # Step 4+: Navigate through remaining tabs
-            for i, tab_label in enumerate(SHEET_TABS, start=4):
-                print(f"\n{i}. Clicking {tab_label} tab...")
-                click_tab(page, tab_label)
-                wait_for_spinner_gone(page)
-                take_screenshot(
-                    page,
-                    f"sheet_{i:02d}_{tab_label.lower()}",
-                    f"{tab_label} tab",
+            # Step 4: Verify Stats tab content (attributes, defenses, derived stats)
+            print("\n4. Verifying Stats tab content...")
+
+            attr_cards = page.locator(ATTRIBUTE_CARD)
+            attr_count = attr_cards.count()
+            assert attr_count >= 6, f"Expected at least 6 attribute cards, got {attr_count}"
+            first_abbr = attr_cards.first.locator(".attribute-abbr").inner_text().strip()
+            assert len(first_abbr) >= 2, f"Attribute abbreviation too short: '{first_abbr}'"
+            print(f"   [OK] {attr_count} attribute cards (first: {first_abbr})")
+
+            defense_cards = page.locator(DEFENSE_CARD)
+            defense_count = defense_cards.count()
+            assert defense_count >= 3, f"Expected at least 3 defense cards, got {defense_count}"
+            print(f"   [OK] {defense_count} defense cards")
+
+            take_screenshot(page, "sheet_04_stats_content", "Stats tab content")
+
+            # Step 5: Verify Skills tab content
+            print("\n5. Verifying Skills tab content...")
+            click_tab(page, "Skills")
+            wait_for_spinner_gone(page)
+
+            skill_categories = page.locator(SKILL_CATEGORY)
+            cat_count = skill_categories.count()
+            assert cat_count >= 3, f"Expected at least 3 skill categories, got {cat_count}"
+
+            skill_items = page.locator(SKILL_ITEM)
+            skill_count = skill_items.count()
+            assert skill_count >= 10, f"Expected at least 10 skills, got {skill_count}"
+            first_skill = skill_items.first.locator(SKILL_ITEM_LABEL).first.inner_text().strip()
+            assert len(first_skill) > 0, "First skill name is empty"
+            print(f"   [OK] {cat_count} categories, {skill_count} skills (first: {first_skill})")
+
+            filled_pips = page.locator(SKILL_PIP_FILLED)
+            print(f"   [OK] {filled_pips.count()} filled rank pips")
+            take_screenshot(page, "sheet_05_skills_content", "Skills tab content")
+
+            # Step 6: Verify Actions tab content
+            print("\n6. Verifying Actions tab content...")
+            click_tab(page, "Actions")
+            wait_for_spinner_gone(page)
+            take_screenshot(page, "sheet_06_actions", "Actions tab")
+            print("   [OK] Actions tab loaded")
+
+            # Step 7: Verify Equipment tab content
+            print("\n7. Verifying Equipment tab content...")
+            click_tab(page, "Equipment")
+            wait_for_spinner_gone(page)
+            take_screenshot(page, "sheet_07_equipment", "Equipment tab")
+            print("   [OK] Equipment tab loaded")
+
+            # Step 8: Verify Talents tab content
+            print("\n8. Verifying Talents tab content...")
+            click_tab(page, "Talents")
+            wait_for_spinner_gone(page)
+
+            # Talents tab uses q-tabs for path categories or shows "No talents acquired"
+            talent_tabs = page.locator(TALENT_TAB)
+            no_talents = page.locator('.talents-tab .text-empty:has-text("No talents")')
+            if talent_tabs.count() > 0:
+                first_tab_label = talent_tabs.first.inner_text().strip()
+                print(
+                    f"   [OK] Talent categories: {talent_tabs.count()} (first: {first_tab_label})"
                 )
-                print(f"   [OK] {tab_label} tab loaded")
+            elif no_talents.count() > 0:
+                print("   [OK] No talents state displayed")
+            else:
+                print("   [INFO] Talents tab loaded (content varies)")
+            take_screenshot(page, "sheet_08_talents", "Talents tab content")
+
+            # Step 9: Verify Expertises tab content
+            print("\n9. Verifying Expertises tab content...")
+            click_tab(page, "Expertises")
+            wait_for_spinner_gone(page)
+
+            exp_sections = page.locator(EXPERTISE_SECTION)
+            exp_count = exp_sections.count()
+            assert exp_count >= 1, f"Expected at least 1 expertise category, got {exp_count}"
+
+            exp_chips = page.locator(EXPERTISE_CHIP)
+            print(f"   [OK] {exp_count} categories, {exp_chips.count()} expertise chips")
+            take_screenshot(page, "sheet_09_expertises", "Expertises tab content")
+
+            # Step 10: Verify Conditions tab content
+            print("\n10. Verifying Conditions tab content...")
+            click_tab(page, "Conditions")
+            wait_for_spinner_gone(page)
+            take_screenshot(page, "sheet_10_conditions", "Conditions tab")
+            print("   [OK] Conditions tab loaded")
+
+            # Step 11: Verify Companions tab content
+            print("\n11. Verifying Companions tab content...")
+            click_tab(page, "Companions")
+            wait_for_spinner_gone(page)
+
+            comp_tiles = page.locator(COMPANION_TILE)
+            no_comps = page.locator('text="No companions yet."')
+            if comp_tiles.count() > 0:
+                print(f"   [OK] {comp_tiles.count()} companion tiles")
+            elif no_comps.count() > 0:
+                print("   [OK] No companions state displayed")
+            else:
+                print("   [INFO] Companions tab loaded")
+            take_screenshot(page, "sheet_11_companions", "Companions tab")
+
+            # Step 12: Verify Others tab
+            print("\n12. Verifying Others tab...")
+            click_tab(page, "Others")
+            wait_for_spinner_gone(page)
+            take_screenshot(page, "sheet_12_others", "Others tab")
+            print("   [OK] Others tab loaded")
 
             # --- RESOURCE TRACKING (Stats tab) ---
 
-            # Step 12: Test resource buttons on Stats tab
-            step = len(SHEET_TABS) + 4  # Continue numbering after tab loop
+            # Step 13: Test resource buttons on Stats tab
+            step = 13
             print(f"\n{step}. Testing resource tracking (Stats tab)...")
             click_tab(page, "Stats")
             wait_for_spinner_gone(page)
@@ -242,8 +339,15 @@ def test_character_sheet():
                 [
                     "Character list loads",
                     "Character card navigates to sheet",
-                    "Stats tab active by default",
-                    *[f"{t} tab navigation" for t in SHEET_TABS],
+                    "Stats tab: attributes, defenses, derived stats",
+                    "Skills tab: categories, skill names, rank pips",
+                    "Actions tab loads",
+                    "Equipment tab loads",
+                    "Talents tab: path categories or empty state",
+                    "Expertises tab: categories and chips",
+                    "Conditions tab loads",
+                    "Companions tab: tiles or empty state",
+                    "Others tab loads",
                     "Focus resource increment/decrement",
                     "HP management dialog",
                     "Condition toggling",
