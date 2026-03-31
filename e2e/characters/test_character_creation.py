@@ -24,11 +24,16 @@ from playwright.sync_api import sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    ATTRIBUTE_CARD,
+    EXPERTISE_CHIP,
+    SKILL_ITEM,
+    TALENT_TAB,
     click_finish,
     click_first_checkbox,
     click_increment,
     click_increment_rank,
     click_next_step,
+    click_tab,
     fill_input,
     fill_textarea,
     navigate_to,
@@ -37,8 +42,11 @@ from e2e.common.helpers import (
     select_first_card,
     select_first_option,
     take_screenshot,
+    verify_element_exists,
     verify_text_visible,
     verify_url_contains,
+    wait_for_either_visible,
+    wait_for_page_load,
     wait_for_spinner_gone,
 )
 
@@ -164,6 +172,45 @@ def test_character_creation():
             verify_text_visible(page, character_name)
             take_screenshot(page, "cc_11_sheet", "Character sheet")
 
+            # Step 12: Verify data persists after reload
+            print("\n12. Verifying data persistence after reload...")
+            page.reload()
+            wait_for_page_load(page)
+            wait_for_spinner_gone(page)
+
+            # Character name survives reload
+            verify_text_visible(page, character_name)
+            print(f"   [OK] Name persisted: {character_name}")
+
+            # Attributes present (at least 6 cards)
+            attr_count = verify_element_exists(page, ATTRIBUTE_CARD, "Attribute cards")
+            assert attr_count >= 6, f"Expected 6+ attributes after reload, got {attr_count}"
+
+            # Skills tab has data
+            click_tab(page, "Skills")
+            wait_for_spinner_gone(page)
+            skill_count = verify_element_exists(page, SKILL_ITEM, "Skill items")
+            assert skill_count >= 10, f"Expected 10+ skills after reload, got {skill_count}"
+
+            # Expertises tab has chips
+            click_tab(page, "Expertises")
+            wait_for_spinner_gone(page)
+            exp_count = verify_element_exists(page, EXPERTISE_CHIP, "Expertise chips")
+            assert exp_count >= 1, f"Expected 1+ expertise chips after reload, got {exp_count}"
+
+            # Talents tab has data (from path selection) or shows empty state
+            click_tab(page, "Talents")
+            wait_for_spinner_gone(page)
+            talent_tabs_loc = page.locator(TALENT_TAB)
+            no_talents = page.locator('.talents-tab .text-empty:has-text("No talents")')
+            state = wait_for_either_visible(talent_tabs_loc, no_talents, "Talents tab")
+            if state == "populated":
+                print(f"   [OK] {talent_tabs_loc.count()} talent categories after reload")
+            else:
+                print("   [OK] No talents state displayed after reload")
+
+            take_screenshot(page, "cc_12_persisted", "Data persisted after reload")
+
             print_test_summary(
                 "CHARACTER CREATION",
                 [
@@ -178,16 +225,16 @@ def test_character_creation():
                     "Personal details (textarea fields)",
                     "Review and finish",
                     "Redirect to character sheet",
+                    "Data persists after reload (name, attrs, skills, expertises, talents)",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "cc_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -195,5 +242,7 @@ def test_character_creation():
 
 
 if __name__ == "__main__":
-    success = test_character_creation()
-    sys.exit(0 if success else 1)
+    try:
+        test_character_creation()
+    except Exception:
+        sys.exit(1)

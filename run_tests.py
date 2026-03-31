@@ -89,10 +89,13 @@ class TestRunner:
             (base / "auth-flow" / "test_login.py", "Login Flow"),
             (base / "auth-flow" / "test_account.py", "Account Settings"),
             (base / "auth-flow" / "test_password_recovery.py", "Password Recovery"),
+            (base / "auth-flow" / "test_password_change.py", "Password Change"),
+            (base / "auth-flow" / "test_unauthorized_access.py", "Unauthorized Access"),
             # Character tests
             (base / "characters" / "test_character_creation.py", "Character Creation"),
             (base / "characters" / "test_character_sheet.py", "Character Sheet"),
             (base / "characters" / "test_character_editing.py", "Character Editing"),
+            (base / "characters" / "test_wizard_validation.py", "Wizard Validation"),
             (base / "characters" / "test_character_deletion.py", "Character Deletion"),
             # Campaign tests
             (base / "campaigns" / "test_campaign_crud.py", "Campaign CRUD"),
@@ -100,6 +103,8 @@ class TestRunner:
             # Combat tests
             (base / "combat" / "test_npc_library.py", "NPC Library"),
             (base / "combat" / "test_combat_encounter.py", "Combat Encounter"),
+            # Error pages
+            (base / "error-pages" / "test_error_pages.py", "Error Pages"),
         ]
 
     def run_tests(self, skip_missing=False):

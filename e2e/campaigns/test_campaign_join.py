@@ -119,7 +119,10 @@ def test_campaign_join():
 
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
-                print("   [OK] Character assignment submitted")
+
+                # Assignment redirects to character sheet -- verify redirect
+                page.wait_for_url("**/characters/**", timeout=10000)
+                print("   [OK] Character assignment submitted (redirected to sheet)")
                 take_screenshot(page, "join_05_assigned", "Character assigned")
 
                 # Step 6: Navigate to campaign detail to verify hero
@@ -134,8 +137,9 @@ def test_campaign_join():
                 wait_for_page_load(page)
                 wait_for_spinner_gone(page)
 
-                # Verify hero is shown on campaign detail
+                # Verify hero is shown on campaign detail (wait for async load)
                 remove_locator = page.locator('[aria-label*="Remove"][aria-label*="from campaign"]')
+                remove_locator.first.wait_for(state="visible", timeout=10000)
                 assert (
                     remove_locator.count() > 0
                 ), "Hero not visible on campaign detail after assignment"
@@ -185,14 +189,13 @@ def test_campaign_join():
                 summary_steps.append("Hero removal confirmed")
                 summary_steps.append("Hero removed from campaign")
             print_test_summary("CAMPAIGN JOIN", summary_steps)
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "join_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if page is not None and campaign_name:
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
@@ -202,5 +205,7 @@ def test_campaign_join():
 
 
 if __name__ == "__main__":
-    success = test_campaign_join()
-    sys.exit(0 if success else 1)
+    try:
+        test_campaign_join()
+    except Exception:
+        sys.exit(1)

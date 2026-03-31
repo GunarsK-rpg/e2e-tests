@@ -13,7 +13,7 @@ import sys
 import time
 import traceback
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
@@ -58,15 +58,20 @@ def test_campaign_crud():
             wait_for_spinner_gone(page)
             print("   [OK] Campaigns page loaded")
 
-            # Step 2: Create campaign
-            print("\n2. Creating campaign...")
+            # Step 2: Create campaign with modifiers
+            print("\n2. Creating campaign with modifiers...")
             click_button(page, "Create Campaign")
             wait_for_page_load(page)
 
             fill_input(page, "Campaign Name", campaign_name)
             fill_textarea(page, "Description", f"Test campaign {unique_suffix}")
-            print(f"   [OK] Name: {campaign_name}")
-            take_screenshot(page, "campaign_02_form", "Campaign form")
+
+            # Fill hero budget modifiers (CampaignFormPage.vue)
+            modifiers = {"Talents": "2", "Skill Ranks": "3", "Expertises": "1"}
+            for label, value in modifiers.items():
+                fill_input(page, label, value)
+            print(f"   [OK] Name: {campaign_name}, modifiers: {modifiers}")
+            take_screenshot(page, "campaign_02_form", "Campaign form with modifiers")
 
             # Step 3: Save
             print("\n3. Saving campaign...")
@@ -81,10 +86,21 @@ def test_campaign_crud():
             verify_url_contains(page, "/campaigns/")
             take_screenshot(page, "campaign_04_detail", "Campaign detail")
 
-            # Step 5: Edit (pencil button aria-label)
+            # Step 5: Edit campaign and verify modifiers loaded
             print("\n5. Editing campaign...")
             click_button_by_aria(page, "Edit campaign")
             wait_for_page_load(page)
+            wait_for_spinner_gone(page)
+
+            # Verify all modifiers loaded in edit form
+            for label, expected in modifiers.items():
+                field = (
+                    page.locator(f'.q-field:has(.q-field__label:has-text("{label}"))')
+                    .first.locator("input.q-field__native")
+                    .first
+                )
+                expect(field).to_have_value(expected, timeout=10000)
+            print("   [OK] All modifiers loaded in edit form")
 
             fill_textarea(page, "Description", updated_desc)
             click_button(page, "Save")
@@ -114,23 +130,23 @@ def test_campaign_crud():
                 "CAMPAIGN CRUD",
                 [
                     "Campaigns page loads",
-                    "Campaign form fills",
+                    "Campaign form fills with modifiers",
                     "Campaign creates",
                     "Detail page shows campaign",
+                    "Modifiers loaded in edit form",
                     "Campaign edits",
                     "Updated description visible",
                     "Campaign deletes",
                     "Redirect to campaigns list",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "campaign_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -138,5 +154,7 @@ def test_campaign_crud():
 
 
 if __name__ == "__main__":
-    success = test_campaign_crud()
-    sys.exit(0 if success else 1)
+    try:
+        test_campaign_crud()
+    except Exception:
+        sys.exit(1)

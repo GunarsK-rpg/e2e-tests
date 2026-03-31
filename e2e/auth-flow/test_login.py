@@ -78,8 +78,7 @@ def test_login_flow():
             # Step 4: Login with credentials
             print("\n4. Logging in...")
             if not username or not password:
-                print("   [FAIL] No credentials. Run registration test first.")
-                return False
+                raise AssertionError("No credentials. Run registration test first.")
 
             navigate_to(page, BASE_URL, "/login")
             fill_input(page, "Username", username)
@@ -91,8 +90,7 @@ def test_login_flow():
                 print(f"   [OK] Login successful: {page.url}")
             else:
                 take_screenshot(page, "login_04_fail", "Login failed")
-                print("   [FAIL] Still on login page")
-                return False
+                raise AssertionError("Still on login page after login attempt")
 
             # Step 5: Verify landing page
             print("\n5. Verifying landing page...")
@@ -106,8 +104,7 @@ def test_login_flow():
                 print("   [OK] Session persisted")
             else:
                 take_screenshot(page, "login_06_session_lost", "Session lost")
-                print("   [FAIL] Session lost")
-                return False
+                raise AssertionError("Session lost after reload")
 
             # Step 7: Logout
             print("\n7. Testing logout...")
@@ -135,18 +132,19 @@ def test_login_flow():
                     "Access denied after logout",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             take_screenshot(page, "login_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             context.close()
             browser.close()
 
 
 if __name__ == "__main__":
-    success = test_login_flow()
-    sys.exit(0 if success else 1)
+    try:
+        test_login_flow()
+    except Exception:
+        sys.exit(1)

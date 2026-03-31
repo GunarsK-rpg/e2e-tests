@@ -21,7 +21,9 @@ from e2e.common.helpers import (
     HERO_CARD,
     click_button_by_aria,
     click_finish,
+    click_increment,
     click_tab,
+    expand_section,
     fill_textarea,
     navigate_to,
     print_test_summary,
@@ -83,15 +85,22 @@ def test_character_editing():
             verify_element_exists(page, "input.q-field__native", "Character name field")
             print("   [OK] Wizard loaded in edit mode")
 
-            # Step 4: Navigate to Personal Details step to make a visible change
-            print("\n4. Navigating to Personal Details step...")
+            # Step 4: Edit attributes (increment Strength)
+            print("\n4. Editing attributes...")
+            click_tab(page, "Attributes")
+            wait_for_spinner_gone(page)
+            click_increment(page, "Strength")
+            take_screenshot(page, "edit_04_attributes", "Attributes edited")
+
+            # Step 5: Navigate to Personal Details step to make a visible change
+            print("\n5. Navigating to Personal Details step...")
             click_tab(page, "Details")
             wait_for_spinner_gone(page)
             verify_element_exists(page, "textarea.q-field__native", "Details textarea")
-            take_screenshot(page, "edit_04_personal", "Personal Details step")
+            take_screenshot(page, "edit_05_personal", "Personal Details step")
 
-            # Step 5: Modify notes field
-            print("\n5. Modifying notes field...")
+            # Step 6: Modify notes field
+            print("\n6. Modifying notes field...")
             edit_text = f"E2E edit test {unique_suffix}"
             fill_textarea(page, "Additional Notes", edit_text)
             # Blur triggers a 300ms debounce in PersonalDetailsStep.vue that
@@ -103,27 +112,27 @@ def test_character_editing():
             page.wait_for_timeout(500)
             print(f"   [OK] Notes updated: {edit_text}")
 
-            # Step 6: Navigate to Review and finish
-            print("\n6. Navigating to Review step...")
+            # Step 7: Navigate to Review and finish
+            print("\n7. Navigating to Review step...")
             click_tab(page, "Review")
             wait_for_spinner_gone(page)
             verify_element_exists(page, BTN_FINISH, "Finish button")
-            take_screenshot(page, "edit_06_review", "Review step")
+            take_screenshot(page, "edit_07_review", "Review step")
 
-            # Step 7: Click Finish to save
-            print("\n7. Saving changes...")
+            # Step 8: Click Finish to save
+            print("\n8. Saving changes...")
             click_finish(page)
 
-            # Step 8: Verify redirect back to same character sheet
-            print("\n8. Verifying redirect to character sheet...")
+            # Step 9: Verify redirect back to same character sheet
+            print("\n9. Verifying redirect to character sheet...")
             assert (
                 page.url == character_url
             ), f"Redirected to wrong character: expected {character_url}, got {page.url}"
             print("   [OK] Redirected to same character sheet")
-            take_screenshot(page, "edit_08_saved", "Character saved")
+            take_screenshot(page, "edit_09_saved", "Character saved")
 
-            # Step 9: Verify the edit persisted after reload
-            print("\n9. Verifying edit persisted...")
+            # Step 10: Verify the edit persisted after reload
+            print("\n10. Verifying edit persisted...")
             page.reload()
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
@@ -131,17 +140,12 @@ def test_character_editing():
             click_tab(page, "Others")
             wait_for_spinner_gone(page)
 
-            # Expand Biography panel if collapsed
-            bio_section = page.locator('[aria-label="Biography section"]').first
-            bio_classes = bio_section.get_attribute("class") or ""
-            if "q-expansion-item--collapsed" in bio_classes:
-                bio_section.locator('.q-item[role="button"]').first.click()
-                wait_for_spinner_gone(page)
+            expand_section(page, "Biography section")
 
             verify_text_visible(page, edit_text)
             print(f"   [OK] Notes text visible: {edit_text}")
 
-            take_screenshot(page, "edit_09_done", "Test complete")
+            take_screenshot(page, "edit_10_done", "Test complete")
 
             print_test_summary(
                 "CHARACTER EDITING",
@@ -149,6 +153,7 @@ def test_character_editing():
                     "Character sheet loads",
                     "Edit mode entered",
                     "Wizard loads existing data",
+                    "Attributes edited (Strength incremented)",
                     "Personal Details step navigated",
                     "Notes field modified",
                     "Review step navigated",
@@ -157,14 +162,13 @@ def test_character_editing():
                     "Edit persisted (visible in Others > Biography)",
                 ],
             )
-            return True
 
         except Exception as e:
             print(f"\n[ERROR] {e}")
             if page is not None:
                 take_screenshot(page, "edit_error", "Error")
             traceback.print_exc()
-            return False
+            raise
         finally:
             if context is not None:
                 context.close()
@@ -172,5 +176,7 @@ def test_character_editing():
 
 
 if __name__ == "__main__":
-    success = test_character_editing()
-    sys.exit(0 if success else 1)
+    try:
+        test_character_editing()
+    except Exception:
+        sys.exit(1)
