@@ -585,8 +585,13 @@ def select_all_checkboxes_in_dialog(page: Page) -> None:
     dialog = page.locator(".q-dialog").first
     unchecked = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]')
     count = unchecked.count()
+    if count == 0:
+        raise AssertionError("No unchecked checkboxes found in dialog")
     for _ in range(count):
         unchecked.nth(0).click()  # Always click first unchecked (list shifts after check)
+    remaining = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').count()
+    if remaining > 0:
+        raise AssertionError(f"{remaining} checkboxes still unchecked after selection")
     print(f"   [OK] Selected {count} checkboxes in dialog")
 
 
@@ -612,10 +617,12 @@ def create_campaign_with_source_books(page: Page, base_url: str, campaign_name: 
     wait_for_page_load(page)
     wait_for_spinner_gone(page)
 
-    # Extract campaign URL path
+    # Extract and validate campaign URL path
     from urllib.parse import urlparse
 
     path = urlparse(page.url).path
+    if path in ("/campaigns", "/campaigns/new"):
+        raise AssertionError(f"Campaign creation failed for '{campaign_name}': stuck on {path}")
     print(f"   [OK] Campaign '{campaign_name}' created at {path}")
     return path
 
