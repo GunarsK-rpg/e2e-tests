@@ -580,6 +580,71 @@ def expand_section(page: Page, aria_label: str) -> None:
 # ========================================
 
 
+def select_all_checkboxes_in_dialog(page: Page) -> None:
+    """Check all unchecked q-checkboxes in the currently open dialog."""
+    dialog = page.locator(".q-dialog").first
+    unchecked = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]')
+    count = unchecked.count()
+    if count == 0:
+        raise AssertionError("No unchecked checkboxes found in dialog")
+    for _ in range(count):
+        unchecked.nth(0).click()  # Always click first unchecked (list shifts after check)
+    remaining = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').count()
+    if remaining > 0:
+        raise AssertionError(f"{remaining} checkboxes still unchecked after selection")
+    print(f"   [OK] Selected {count} checkboxes in dialog")
+
+
+def create_campaign_with_source_books(page: Page, base_url: str, campaign_name: str) -> str:
+    """Create a campaign with all source books selected.
+
+    Returns the campaign detail URL path (e.g. /campaigns/5).
+    """
+    navigate_to(page, base_url, "/campaigns")
+    wait_for_spinner_gone(page)
+    click_button(page, "Create Campaign")
+    wait_for_page_load(page)
+
+    fill_input(page, "Campaign Name", campaign_name)
+
+    # Open source book dialog and select all
+    click_button(page, "Manage Source Books")
+    wait_for_dialog(page)
+    select_all_checkboxes_in_dialog(page)
+    confirm_dialog(page, "Confirm")
+
+    click_button(page, "Create")
+    wait_for_page_load(page)
+    wait_for_spinner_gone(page)
+
+    # Extract and validate campaign URL path
+    from urllib.parse import urlparse
+
+    path = urlparse(page.url).path
+    if path in ("/campaigns", "/campaigns/new"):
+        raise AssertionError(f"Campaign creation failed for '{campaign_name}': stuck on {path}")
+    print(f"   [OK] Campaign '{campaign_name}' created at {path}")
+    return path
+
+
+def navigate_to_campaign_character_creation(page: Page, base_url: str, campaign_path: str) -> None:
+    """Navigate to character creation via a campaign's join page.
+
+    campaign_path: e.g. /campaigns/5 (from create_campaign_with_source_books)
+    """
+    navigate_to(page, base_url, campaign_path)
+    wait_for_spinner_gone(page)
+
+    click_button(page, "Add Character")
+    wait_for_page_load(page)
+    wait_for_spinner_gone(page)
+
+    click_button(page, "Create Character")
+    wait_for_page_load(page)
+    wait_for_spinner_gone(page)
+    print("   [OK] Character creation loaded via campaign")
+
+
 def cleanup_test_campaign(page: Page, base_url: str, campaign_name: str) -> None:
     """Navigate to campaigns list and delete a campaign by name. Swallows errors."""
     try:

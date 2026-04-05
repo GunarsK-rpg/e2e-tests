@@ -9,6 +9,7 @@ Matches: BasicSetupStep.vue (Character Name required, ancestry required)
 
 import re
 import sys
+import time
 import traceback
 
 from playwright.sync_api import expect, sync_playwright
@@ -16,9 +17,11 @@ from playwright.sync_api import expect, sync_playwright
 from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
+    cleanup_test_campaign,
     click_next_step,
+    create_campaign_with_source_books,
     fill_input,
-    navigate_to,
+    navigate_to_campaign_character_creation,
     print_test_summary,
     select_first_card,
     take_screenshot,
@@ -44,11 +47,16 @@ def test_wizard_validation():
         context = None
         try:
             page, context = authenticate_for_testing(browser)
+            unique_suffix = str(int(time.time()))[-6:]
+            campaign_name = f"E2E ValCamp {unique_suffix}"
 
-            # Step 1: Navigate to creation wizard
+            # Step 0: Create campaign with source books
+            print("0. Creating campaign with source books...")
+            campaign_path = create_campaign_with_source_books(page, BASE_URL, campaign_name)
+
+            # Step 1: Navigate to creation wizard via campaign
             print("1. Navigating to character creation...")
-            navigate_to(page, BASE_URL, "/characters/new")
-            wait_for_spinner_gone(page)
+            navigate_to_campaign_character_creation(page, BASE_URL, campaign_path)
             verify_element_exists(page, "input.q-field__native", "Character name field")
             take_screenshot(page, "validation_01_start", "Wizard start")
 
@@ -112,6 +120,8 @@ def test_wizard_validation():
             traceback.print_exc()
             raise
         finally:
+            if page is not None:
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()

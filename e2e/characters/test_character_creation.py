@@ -28,15 +28,17 @@ from e2e.common.helpers import (
     EXPERTISE_CHIP,
     SKILL_ITEM,
     TALENT_TAB,
+    cleanup_test_campaign,
     click_finish,
     click_first_checkbox,
     click_increment,
     click_increment_rank,
     click_next_step,
     click_tab,
+    create_campaign_with_source_books,
     fill_input,
     fill_textarea,
-    navigate_to,
+    navigate_to_campaign_character_creation,
     open_dialog_and_select_first,
     print_test_summary,
     select_first_card,
@@ -67,11 +69,15 @@ def test_character_creation():
             page, context = authenticate_for_testing(browser)
             unique_suffix = str(int(time.time()))[-6:]
             character_name = f"E2E Hero {unique_suffix}"
+            campaign_name = f"E2E Camp {unique_suffix}"
+
+            # Step 0: Create campaign with source books
+            print("0. Creating campaign with source books...")
+            campaign_path = create_campaign_with_source_books(page, BASE_URL, campaign_name)
 
             # Step 1: BasicSetupStep (name, level, ancestry)
             print("1. Basic Setup...")
-            navigate_to(page, BASE_URL, "/characters/new")
-            wait_for_spinner_gone(page)
+            navigate_to_campaign_character_creation(page, BASE_URL, campaign_path)
 
             fill_input(page, "Character Name", character_name)
             print(f"   [OK] Name: {character_name}")
@@ -236,6 +242,8 @@ def test_character_creation():
             traceback.print_exc()
             raise
         finally:
+            if page is not None:
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()
