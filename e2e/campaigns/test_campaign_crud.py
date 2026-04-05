@@ -25,6 +25,7 @@ from e2e.common.helpers import (
     fill_textarea,
     navigate_to,
     print_test_summary,
+    select_all_checkboxes_in_dialog,
     take_screenshot,
     verify_text_visible,
     verify_url_contains,
@@ -65,6 +66,12 @@ def test_campaign_crud():
 
             fill_input(page, "Campaign Name", campaign_name)
             fill_textarea(page, "Description", f"Test campaign {unique_suffix}")
+
+            # Select source books
+            click_button(page, "Manage Source Books")
+            wait_for_dialog(page)
+            select_all_checkboxes_in_dialog(page)
+            confirm_dialog(page, "Confirm")
 
             # Fill hero budget modifiers (CampaignFormPage.vue)
             modifiers = {"Talents": "2", "Skill Ranks": "3", "Expertises": "1"}
