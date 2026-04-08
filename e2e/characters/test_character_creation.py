@@ -130,7 +130,7 @@ def test_character_creation():
             print("\n6. Paths...")
             wait_for_spinner_gone(page)
 
-            open_dialog_and_select_first(page, "Add Path", "Heroic path")
+            open_dialog_and_select_first(page, "Add Heroic Path", "Heroic path")
 
             take_screenshot(page, "cc_06_paths", "Paths")
             click_next_step(page)
