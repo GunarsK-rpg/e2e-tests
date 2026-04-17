@@ -33,6 +33,13 @@ jobs:
         with:
           path: rpg/${{ env.TRIGGER_REPO }}
 
+      - name: Probe PAT
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.E2E_ACCESS_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository_owner }}/infrastructure)
+          echo "API returned: $code"
+
       # -- Checkout RPG repos (default branch, skip if trigger) --
       - name: Checkout database
         if: env.TRIGGER_REPO != 'database'
