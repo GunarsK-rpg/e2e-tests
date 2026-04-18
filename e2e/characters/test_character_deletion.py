@@ -8,6 +8,7 @@ Matches: ReviewStep.vue (data-testid="delete-hero-btn")
 """
 
 import sys
+import time
 import traceback
 
 from playwright.sync_api import expect, sync_playwright
@@ -17,16 +18,20 @@ from e2e.common.config import get_config
 from e2e.common.helpers import (
     DELETE_CONFIRM_INPUT,
     HERO_CARD,
+    cleanup_test_campaign,
     click_button,
-    click_button_by_aria,
+    click_next_step,
     click_tab,
     confirm_dialog,
+    create_campaign_with_source_books,
+    extract_hero_id_from_url,
+    fill_input,
     navigate_to,
+    navigate_to_campaign_character_creation,
     print_test_summary,
+    select_first_card,
     take_screenshot,
-    verify_url_contains,
     wait_for_dialog,
-    wait_for_element,
     wait_for_page_load,
     wait_for_spinner_gone,
 )
@@ -44,51 +49,51 @@ def test_character_deletion():
 
         page = None
         context = None
+        unique_suffix = str(int(time.time()))[-6:]
+        character_name = f"E2E Delete {unique_suffix}"
+        campaign_name = f"E2E DelCamp {unique_suffix}"
+
         try:
             page, context = authenticate_for_testing(browser)
 
-            # Step 1: Find a character to delete
-            print("1. Navigating to My Characters...")
-            navigate_to(page, BASE_URL, "/")
+            # Step 0: Create campaign with source books
+            print("0. Creating campaign with source books...")
+            campaign_path = create_campaign_with_source_books(page, BASE_URL, campaign_name)
+
+            # Step 1: Create character via wizard (basic setup only)
+            print("\n1. Creating test character...")
+            navigate_to_campaign_character_creation(page, BASE_URL, campaign_path)
+            fill_input(page, "Character Name", character_name)
+            select_first_card(page, "Ancestry")
+            click_next_step(page)
             wait_for_spinner_gone(page)
+            hero_id = extract_hero_id_from_url(page)
+            if hero_id is None:
+                raise AssertionError(f"Could not extract hero ID from URL: {page.url}")
+            print(f"   [OK] Hero created (id={hero_id}): {character_name}")
 
-            if wait_for_element(page, HERO_CARD) == 0:
-                raise AssertionError("No characters found -- cannot test deletion")
-
-            last_card = page.locator(HERO_CARD).last
-            card_name = last_card.locator(".text-h6").first.inner_text()
-            print(f"   [OK] Will delete: {card_name}")
-
-            # Step 2: Open character sheet
-            print("\n2. Opening character sheet...")
-            last_card.click()
-            page.wait_for_url("**/characters/**", timeout=10000)
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-            verify_url_contains(page, "/characters/")
-
-            # Step 3: Enter edit mode (CharacterHeader.vue: aria-label="Edit character")
-            print("\n3. Entering edit mode...")
-            click_button_by_aria(page, "Edit character")
+            # Step 2: Reload to enter edit mode (wizardStore.mode -> 'edit')
+            print("\n2. Entering edit mode...")
+            page.reload()
             wait_for_page_load(page)
             wait_for_spinner_gone(page)
             print("   [OK] Edit mode entered")
 
-            # Step 4: Navigate to Review tab
-            print("\n4. Navigating to Review step...")
+            # Step 3: Navigate to Review tab
+            print("\n3. Navigating to Review step...")
             click_tab(page, "Review")
             wait_for_spinner_gone(page)
             print("   [OK] Review step opened")
 
-            # Step 5: Click Delete Character button
-            print("\n5. Clicking Delete Character...")
+            # Step 4: Click Delete Character button
+            print("\n4. Clicking Delete Character...")
             click_button(page, "Delete Character")
             wait_for_dialog(page)
             print("   [OK] Delete dialog opened")
-            take_screenshot(page, "delete_05_dialog", "Delete dialog")
+            take_screenshot(page, "delete_04_dialog", "Delete dialog")
 
-            # Step 6: Type "delete" and confirm
-            print("\n6. Confirming deletion...")
+            # Step 5: Type "delete" and confirm
+            print("\n5. Confirming deletion...")
             page.locator(DELETE_CONFIRM_INPUT).first.click()
             page.locator(DELETE_CONFIRM_INPUT).first.fill("delete")
             wait_for_spinner_gone(page)
@@ -96,29 +101,25 @@ def test_character_deletion():
             wait_for_page_load(page)
             print("   [OK] Deletion confirmed")
 
-            # Step 7: Verify dialog closed
-            print("\n7. Verifying dialog closed...")
+            # Step 6: Verify dialog closed
+            print("\n6. Verifying dialog closed...")
             expect(page.locator(".q-dialog")).to_have_count(0)
             print("   [OK] Dialog closed")
 
-            # Step 8: Verify redirected to characters list
-            print("\n8. Verifying redirect...")
-            wait_for_page_load(page)
-            take_screenshot(page, "delete_08_after", "After deletion")
-
-            # Navigate to characters list and verify hero is gone
+            # Step 7: Verify hero is gone from list
+            print("\n7. Verifying removal from list...")
             navigate_to(page, BASE_URL, "/")
             wait_for_spinner_gone(page)
-
-            remaining = page.locator(f'{HERO_CARD}:has-text("{card_name}")')
+            take_screenshot(page, "delete_07_after", "After deletion")
+            remaining = page.locator(f'{HERO_CARD}:has-text("{character_name}")')
             expect(remaining).to_have_count(0)
-            print(f"   [OK] '{card_name}' no longer in character list")
+            print(f"   [OK] '{character_name}' no longer in character list")
 
             print_test_summary(
                 "CHARACTER DELETION",
                 [
-                    "Character found",
-                    "Sheet opened",
+                    "Campaign created",
+                    "Character created",
                     "Edit mode entered",
                     "Review step navigated",
                     "Delete dialog opened",
@@ -135,6 +136,8 @@ def test_character_deletion():
             traceback.print_exc()
             raise
         finally:
+            if page is not None:
+                cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()
             browser.close()

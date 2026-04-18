@@ -662,6 +662,34 @@ def cleanup_test_campaign(page: Page, base_url: str, campaign_name: str) -> None
         print(f"   [CLEANUP WARN] {cleanup_err}")
 
 
+def extract_hero_id_from_url(page: Page) -> Optional[int]:
+    """Extract hero ID from URLs like /characters/{id} or /characters/{id}/edit."""
+    from urllib.parse import urlparse
+
+    path = urlparse(page.url).path
+    match = re.search(r"/characters/(\d+)", path)
+    return int(match.group(1)) if match else None
+
+
+def cleanup_test_hero(page: Page, base_url: str, hero_id: int) -> None:
+    """Navigate to character edit and delete via Review tab. Swallows errors."""
+    try:
+        navigate_to(page, base_url, f"/characters/{hero_id}/edit")
+        wait_for_spinner_gone(page)
+        click_tab(page, "Review")
+        wait_for_spinner_gone(page)
+        click_button(page, "Delete Character")
+        wait_for_dialog(page)
+        page.locator(DELETE_CONFIRM_INPUT).first.click()
+        page.locator(DELETE_CONFIRM_INPUT).first.fill("delete")
+        wait_for_spinner_gone(page)
+        confirm_dialog(page, "Delete")
+        wait_for_page_load(page)
+        print(f"   [CLEANUP] Test hero {hero_id} deleted")
+    except Exception as cleanup_err:
+        print(f"   [CLEANUP WARN] {cleanup_err}")
+
+
 # ========================================
 # SUMMARY HELPER
 # ========================================
