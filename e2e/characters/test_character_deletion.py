@@ -19,6 +19,7 @@ from e2e.common.helpers import (
     DELETE_CONFIRM_INPUT,
     HERO_CARD,
     cleanup_test_campaign,
+    cleanup_test_hero,
     click_button,
     click_next_step,
     click_tab,
@@ -49,6 +50,7 @@ def test_character_deletion():
 
         page = None
         context = None
+        hero_id = None
         unique_suffix = str(int(time.time()))[-6:]
         character_name = f"E2E Delete {unique_suffix}"
         campaign_name = f"E2E DelCamp {unique_suffix}"
@@ -100,6 +102,8 @@ def test_character_deletion():
             confirm_dialog(page, "Delete")
             wait_for_page_load(page)
             print("   [OK] Deletion confirmed")
+            # Hero deleted via UI -- skip cleanup_test_hero in finally
+            hero_id = None
 
             # Step 6: Verify dialog closed
             print("\n6. Verifying dialog closed...")
@@ -137,6 +141,8 @@ def test_character_deletion():
             raise
         finally:
             if page is not None:
+                if hero_id is not None:
+                    cleanup_test_hero(page, BASE_URL, hero_id)
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()

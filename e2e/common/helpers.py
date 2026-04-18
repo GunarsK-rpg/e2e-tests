@@ -667,7 +667,7 @@ def extract_hero_id_from_url(page: Page) -> Optional[int]:
     from urllib.parse import urlparse
 
     path = urlparse(page.url).path
-    match = re.search(r"/characters/(\d+)", path)
+    match = re.search(r"/characters/(\d+)(?:/|$)", path)
     return int(match.group(1)) if match else None
 
 

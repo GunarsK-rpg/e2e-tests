@@ -106,6 +106,8 @@ def test_wizard_validation():
 
             # Capture hero ID for cleanup -- URL is /characters/{id}/edit after basic setup save
             hero_id = extract_hero_id_from_url(page)
+            if hero_id is None:
+                raise AssertionError(f"Could not extract hero ID from URL: {page.url}")
             take_screenshot(page, "validation_04_culture", "Culture step")
 
             print_test_summary(
