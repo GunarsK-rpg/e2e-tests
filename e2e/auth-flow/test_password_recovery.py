@@ -8,8 +8,8 @@ Matches: ForgotPasswordPage.vue (email input, "Send Reset Link" submit, success 
 
 import re
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -46,7 +46,7 @@ def test_password_recovery():
                 ignore_https_errors=config.get("ignore_https_errors", False)
             )
             page = context.new_page()
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
 
             # Step 1: Navigate to forgot password page
             print("1. Navigating to forgot password page...")

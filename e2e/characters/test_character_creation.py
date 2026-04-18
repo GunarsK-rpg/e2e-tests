@@ -16,8 +16,8 @@ Wizard steps (CharacterCreationPage.vue):
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import sync_playwright
 
@@ -65,11 +65,11 @@ def test_character_creation():
 
         page = None
         context = None
+        unique_suffix = uuid.uuid4().hex[:8]
+        character_name = f"E2E Hero {unique_suffix}"
+        campaign_name = f"E2E Camp {unique_suffix}"
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
-            character_name = f"E2E Hero {unique_suffix}"
-            campaign_name = f"E2E Camp {unique_suffix}"
 
             # Step 0: Create campaign with source books
             print("0. Creating campaign with source books...")

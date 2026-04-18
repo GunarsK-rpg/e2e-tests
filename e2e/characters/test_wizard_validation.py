@@ -9,8 +9,8 @@ Matches: BasicSetupStep.vue (Character Name required, ancestry required)
 
 import re
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -18,8 +18,10 @@ from e2e.auth.auth_manager import authenticate_for_testing
 from e2e.common.config import get_config
 from e2e.common.helpers import (
     cleanup_test_campaign,
+    cleanup_test_hero,
     click_next_step,
     create_campaign_with_source_books,
+    extract_hero_id_from_url,
     fill_input,
     navigate_to_campaign_character_creation,
     print_test_summary,
@@ -45,10 +47,11 @@ def test_wizard_validation():
 
         page = None
         context = None
+        hero_id = None
+        unique_suffix = uuid.uuid4().hex[:8]
+        campaign_name = f"E2E ValCamp {unique_suffix}"
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
-            campaign_name = f"E2E ValCamp {unique_suffix}"
 
             # Step 0: Create campaign with source books
             print("0. Creating campaign with source books...")
@@ -100,6 +103,11 @@ def test_wizard_validation():
             )
             expect(culture_field.first).to_be_visible(timeout=5000)
             print("   [OK] Advanced to Culture step")
+
+            # Capture hero ID for cleanup -- URL is /characters/{id}/edit after basic setup save
+            hero_id = extract_hero_id_from_url(page)
+            if hero_id is None:
+                raise AssertionError(f"Could not extract hero ID from URL: {page.url}")
             take_screenshot(page, "validation_04_culture", "Culture step")
 
             print_test_summary(
@@ -121,6 +129,8 @@ def test_wizard_validation():
             raise
         finally:
             if page is not None:
+                if hero_id is not None:
+                    cleanup_test_hero(page, BASE_URL, hero_id)
                 cleanup_test_campaign(page, BASE_URL, campaign_name)
             if context is not None:
                 context.close()

@@ -25,6 +25,18 @@ config = get_config()
 BASE_URL = config["web_url"]
 
 
+def assert_redirected_to_login(page, description: str) -> None:
+    """Wait for the client-side redirect to /login, then assert and log.
+
+    Vue Router's guard fires `next({ name: 'login' })` after an auth check,
+    which can happen after `networkidle`. wait_for_url specifically waits for
+    the URL change before asserting.
+    """
+    page.wait_for_url("**/login**", timeout=10000)
+    wait_for_spinner_gone(page)
+    verify_url_contains(page, "/login", description)
+
+
 def test_unauthorized_access():
     """Test that protected routes redirect to login when unauthenticated"""
     with sync_playwright() as p:
@@ -44,46 +56,31 @@ def test_unauthorized_access():
             # Step 1: Access home page (requires auth)
             print("1. Accessing home page without auth...")
             navigate_to(page, BASE_URL, "/")
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-
-            verify_url_contains(page, "/login", "Redirected to login")
+            assert_redirected_to_login(page, "Redirected to login")
             take_screenshot(page, "unauth_01_home", "Home redirects to login")
 
             # Step 2: Access character sheet directly
             print("\n2. Accessing character sheet without auth...")
             navigate_to(page, BASE_URL, "/characters/99999")
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-
-            verify_url_contains(page, "/login", "Redirected to login")
+            assert_redirected_to_login(page, "Redirected to login")
             print("   [OK] Character sheet redirects to login")
 
             # Step 3: Access campaign detail directly
             print("\n3. Accessing campaign detail without auth...")
             navigate_to(page, BASE_URL, "/campaigns/99999")
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-
-            verify_url_contains(page, "/login", "Redirected to login")
+            assert_redirected_to_login(page, "Redirected to login")
             print("   [OK] Campaign detail redirects to login")
 
             # Step 4: Access account page directly
             print("\n4. Accessing account page without auth...")
             navigate_to(page, BASE_URL, "/account")
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-
-            verify_url_contains(page, "/login", "Redirected to login")
+            assert_redirected_to_login(page, "Redirected to login")
             print("   [OK] Account page redirects to login")
 
             # Step 5: Access character creation
             print("\n5. Accessing character creation without auth...")
             navigate_to(page, BASE_URL, "/characters/new")
-            wait_for_page_load(page)
-            wait_for_spinner_gone(page)
-
-            verify_url_contains(page, "/login", "Redirected to login")
+            assert_redirected_to_login(page, "Redirected to login")
             print("   [OK] Character creation redirects to login")
 
             # Step 6: Verify public pages remain accessible

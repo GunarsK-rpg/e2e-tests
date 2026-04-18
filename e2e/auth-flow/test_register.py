@@ -7,8 +7,8 @@ Matches: RegisterPage.vue (q-form with q-input fields, q-btn type=submit)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -40,7 +40,7 @@ def test_register_flow():
 
         print("\n=== REGISTRATION FLOW E2E TEST ===\n")
 
-        unique_suffix = str(int(time.time()))[-6:]
+        unique_suffix = uuid.uuid4().hex[:8]
         test_username = f"e2e_test_{unique_suffix}"
         test_email = f"e2e_test_{unique_suffix}@test.local"
         test_password = f"TestPass{unique_suffix}!"

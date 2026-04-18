@@ -9,8 +9,8 @@ Matches: CharacterCreationPage.vue (edit mode via /characters/:id/edit)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import sync_playwright
 
@@ -51,7 +51,7 @@ def test_character_editing():
         context = None
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
 
             # Step 1: Navigate to My Characters and select a character
             print("1. Navigating to My Characters...")
