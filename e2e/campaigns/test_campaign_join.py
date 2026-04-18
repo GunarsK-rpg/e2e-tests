@@ -8,8 +8,8 @@ Matches: CampaignDetailPage.vue (invite link with Copy icon btn)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect, sync_playwright
@@ -48,7 +48,7 @@ def test_campaign_join():
         campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
             campaign_name = f"E2E Join {unique_suffix}"
 
             # Step 1: Create campaign

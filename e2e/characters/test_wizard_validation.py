@@ -9,8 +9,8 @@ Matches: BasicSetupStep.vue (Character Name required, ancestry required)
 
 import re
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -48,7 +48,7 @@ def test_wizard_validation():
         page = None
         context = None
         hero_id = None
-        unique_suffix = str(int(time.time()))[-6:]
+        unique_suffix = uuid.uuid4().hex[:8]
         campaign_name = f"E2E ValCamp {unique_suffix}"
         try:
             page, context = authenticate_for_testing(browser)

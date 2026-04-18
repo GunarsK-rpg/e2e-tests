@@ -8,8 +8,8 @@ Matches: ReviewStep.vue (data-testid="delete-hero-btn")
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -51,7 +51,7 @@ def test_character_deletion():
         page = None
         context = None
         hero_id = None
-        unique_suffix = str(int(time.time()))[-6:]
+        unique_suffix = uuid.uuid4().hex[:8]
         character_name = f"E2E Delete {unique_suffix}"
         campaign_name = f"E2E DelCamp {unique_suffix}"
 
@@ -102,8 +102,6 @@ def test_character_deletion():
             confirm_dialog(page, "Delete")
             wait_for_page_load(page)
             print("   [OK] Deletion confirmed")
-            # Hero deleted via UI -- skip cleanup_test_hero in finally
-            hero_id = None
 
             # Step 6: Verify dialog closed
             print("\n6. Verifying dialog closed...")
@@ -118,6 +116,8 @@ def test_character_deletion():
             remaining = page.locator(f'{HERO_CARD}:has-text("{character_name}")')
             expect(remaining).to_have_count(0)
             print(f"   [OK] '{character_name}' no longer in character list")
+            # Hero removal verified -- skip cleanup_test_hero in finally
+            hero_id = None
 
             print_test_summary(
                 "CHARACTER DELETION",

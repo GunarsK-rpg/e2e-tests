@@ -11,8 +11,8 @@ Matches: CampaignDetailPage.vue (combat cards, CreateCombatDialog)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import sync_playwright
 
@@ -55,7 +55,7 @@ def test_combat_encounter():
         campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
             campaign_name = f"E2E Combat {unique_suffix}"
             combat_name = f"Battle {unique_suffix}"
 

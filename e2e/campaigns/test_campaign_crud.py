@@ -10,8 +10,8 @@ Matches: CampaignsPage.vue (q-btn "Create Campaign" with Plus icon)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -49,7 +49,7 @@ def test_campaign_crud():
         context = None
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
             campaign_name = f"E2E Campaign {unique_suffix}"
             updated_desc = f"Updated desc {unique_suffix}"
 

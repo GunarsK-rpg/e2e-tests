@@ -11,8 +11,8 @@ Matches: CampaignDetailPage.vue (CampaignNpcList at bottom)
 """
 
 import sys
-import time
 import traceback
+import uuid
 
 from playwright.sync_api import sync_playwright
 
@@ -51,7 +51,7 @@ def test_npc_library():
         campaign_name = None
         try:
             page, context = authenticate_for_testing(browser)
-            unique_suffix = str(int(time.time()))[-6:]
+            unique_suffix = uuid.uuid4().hex[:8]
             campaign_name = f"E2E NPC {unique_suffix}"
             npc_name = f"Test Goblin {unique_suffix}"
             updated_name = f"Test Orc {unique_suffix}"
