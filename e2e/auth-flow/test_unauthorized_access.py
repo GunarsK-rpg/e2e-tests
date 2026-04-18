@@ -44,7 +44,8 @@ def test_unauthorized_access():
             # Step 1: Access home page (requires auth)
             print("1. Accessing home page without auth...")
             navigate_to(page, BASE_URL, "/")
-            wait_for_page_load(page)
+            # Vue Router's client-side redirect can fire after networkidle; wait for URL
+            page.wait_for_url("**/login**", timeout=10000)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/login", "Redirected to login")
@@ -53,7 +54,7 @@ def test_unauthorized_access():
             # Step 2: Access character sheet directly
             print("\n2. Accessing character sheet without auth...")
             navigate_to(page, BASE_URL, "/characters/99999")
-            wait_for_page_load(page)
+            page.wait_for_url("**/login**", timeout=10000)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/login", "Redirected to login")
@@ -62,7 +63,7 @@ def test_unauthorized_access():
             # Step 3: Access campaign detail directly
             print("\n3. Accessing campaign detail without auth...")
             navigate_to(page, BASE_URL, "/campaigns/99999")
-            wait_for_page_load(page)
+            page.wait_for_url("**/login**", timeout=10000)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/login", "Redirected to login")
@@ -71,7 +72,7 @@ def test_unauthorized_access():
             # Step 4: Access account page directly
             print("\n4. Accessing account page without auth...")
             navigate_to(page, BASE_URL, "/account")
-            wait_for_page_load(page)
+            page.wait_for_url("**/login**", timeout=10000)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/login", "Redirected to login")
@@ -80,7 +81,7 @@ def test_unauthorized_access():
             # Step 5: Access character creation
             print("\n5. Accessing character creation without auth...")
             navigate_to(page, BASE_URL, "/characters/new")
-            wait_for_page_load(page)
+            page.wait_for_url("**/login**", timeout=10000)
             wait_for_spinner_gone(page)
 
             verify_url_contains(page, "/login", "Redirected to login")
