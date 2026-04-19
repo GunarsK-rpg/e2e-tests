@@ -1,6 +1,6 @@
 # E2E Tests
 
-End-to-end tests for the Cosmere RPG application using Playwright and Python.
+End-to-end tests for the RPG Character Sheet Manager using Playwright and Python.
 
 ## Quick Start
 
