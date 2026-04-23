@@ -6,6 +6,7 @@ Selectors live here -- tests should call helpers, not build selectors.
 """
 
 import re
+import traceback
 from pathlib import Path
 from typing import Optional
 
@@ -660,6 +661,7 @@ def cleanup_test_campaign(page: Page, base_url: str, campaign_name: str) -> None
             print("   [CLEANUP] Test campaign deleted")
     except Exception as cleanup_err:
         print(f"   [CLEANUP WARN] {cleanup_err}")
+        traceback.print_exc()
 
 
 def extract_hero_id_from_url(page: Page) -> Optional[int]:
@@ -688,6 +690,7 @@ def cleanup_test_hero(page: Page, base_url: str, hero_id: int) -> None:
         print(f"   [CLEANUP] Test hero {hero_id} deleted")
     except Exception as cleanup_err:
         print(f"   [CLEANUP WARN] {cleanup_err}")
+        traceback.print_exc()
 
 
 # ========================================
