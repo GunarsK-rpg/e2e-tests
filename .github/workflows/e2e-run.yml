@@ -274,6 +274,9 @@ jobs:
           echo "=== Portfolio minio logs ==="
           (cd portfolio/infrastructure && docker compose logs minio --tail=50)
           echo ""
+          echo "=== Portfolio postgres logs ==="
+          (cd portfolio/infrastructure && docker compose logs postgres --tail=100)
+          echo ""
           echo "=== RPG flyway logs ==="
           (cd rpg/infrastructure && docker compose logs flyway --tail=50)
           echo ""
