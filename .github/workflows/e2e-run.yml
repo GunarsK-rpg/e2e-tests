@@ -248,40 +248,40 @@ jobs:
         if: failure() || steps.e2e_tests.outcome == 'failure'
         run: |
           echo "=== RPG Container Status ==="
-          (cd rpg/infrastructure && docker compose ps -a)
+          (cd rpg/infrastructure && docker compose ps -a) || true
           echo ""
           echo "=== Portfolio Container Status ==="
-          (cd portfolio/infrastructure && docker compose ps -a)
+          (cd portfolio/infrastructure && docker compose ps -a) || true
           echo ""
           echo "=== RPG public-api logs ==="
-          (cd rpg/infrastructure && docker compose logs public-api --tail=100)
+          (cd rpg/infrastructure && docker compose logs public-api --tail=100) || true
           echo ""
           echo "=== RPG public-web logs ==="
-          (cd rpg/infrastructure && docker compose logs public-web --tail=100)
+          (cd rpg/infrastructure && docker compose logs public-web --tail=100) || true
           echo ""
           echo "=== RPG traefik logs ==="
-          (cd rpg/infrastructure && docker compose logs traefik --tail=50)
+          (cd rpg/infrastructure && docker compose logs traefik --tail=50) || true
           echo ""
           echo "=== Portfolio auth-service logs ==="
-          (cd portfolio/infrastructure && docker compose logs auth-service --tail=100)
+          (cd portfolio/infrastructure && docker compose logs auth-service --tail=100) || true
           echo ""
           echo "=== Portfolio files-api logs ==="
-          (cd portfolio/infrastructure && docker compose logs files-api --tail=50)
+          (cd portfolio/infrastructure && docker compose logs files-api --tail=50) || true
           echo ""
           echo "=== Portfolio flyway logs ==="
-          (cd portfolio/infrastructure && docker compose logs flyway --tail=50)
+          (cd portfolio/infrastructure && docker compose logs flyway --tail=50) || true
           echo ""
           echo "=== Portfolio minio logs ==="
-          (cd portfolio/infrastructure && docker compose logs minio --tail=50)
+          (cd portfolio/infrastructure && docker compose logs minio --tail=50) || true
           echo ""
           echo "=== Portfolio postgres logs ==="
-          (cd portfolio/infrastructure && docker compose logs postgres --tail=100)
+          (cd portfolio/infrastructure && docker compose logs postgres --tail=100) || true
           echo ""
           echo "=== RPG flyway logs ==="
-          (cd rpg/infrastructure && docker compose logs flyway --tail=50)
+          (cd rpg/infrastructure && docker compose logs flyway --tail=50) || true
           echo ""
           echo "=== RPG postgres logs ==="
-          (cd rpg/infrastructure && docker compose logs postgres --tail=50)
+          (cd rpg/infrastructure && docker compose logs postgres --tail=50) || true
 
       - name: Stop services
         if: always()
