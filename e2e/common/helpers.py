@@ -441,9 +441,9 @@ def do_logout(page: Page) -> None:
 # ========================================
 
 
-def wait_for_element(page: Page, selector: str, timeout: int = 5000) -> int:
+def wait_for_element(scope: "Page | Locator", selector: str, timeout: int = 5000) -> int:
     """Wait for element to appear, return count. Returns 0 on timeout (no raise)."""
-    loc = page.locator(selector)
+    loc = scope.locator(selector)
     try:
         loc.first.wait_for(state="visible", timeout=timeout)
     except PlaywrightTimeoutError:
@@ -583,16 +583,16 @@ def expand_section(page: Page, aria_label: str) -> None:
 
 def select_all_checkboxes_in_dialog(page: Page) -> None:
     """Check all unchecked q-checkboxes in the currently open dialog."""
-    dialog = page.locator(".q-dialog").first
-    unchecked = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]')
+    dialog = page.locator('[role="dialog"]').last
+    if wait_for_element(dialog, '[role="checkbox"]') == 0:
+        raise AssertionError("No checkboxes rendered in dialog")
+    unchecked = dialog.locator('[role="checkbox"][aria-checked="false"]')
     count = unchecked.count()
     if count == 0:
         raise AssertionError("No unchecked checkboxes found in dialog")
-    for _ in range(count):
+    for i in range(count):
         unchecked.nth(0).click()  # Always click first unchecked (list shifts after check)
-    remaining = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').count()
-    if remaining > 0:
-        raise AssertionError(f"{remaining} checkboxes still unchecked after selection")
+        expect(unchecked).to_have_count(count - i - 1)
     print(f"   [OK] Selected {count} checkboxes in dialog")
 
 

@@ -23,6 +23,7 @@ from e2e.common.helpers import (
     click_button,
     confirm_dialog,
     fill_input,
+    fill_input_by_aria,
     navigate_to,
     print_test_summary,
     select_first_option,
@@ -93,10 +94,8 @@ def test_npc_library():
 
             # Step 5: Search for NPC in virtual scroll list
             print("\n5. Searching for NPC...")
-            verify_element_exists(
-                page, '.q-field:has(.q-field__label:has-text("Search NPCs"))', "Search field"
-            )
-            fill_input(page, "Search NPCs", npc_name)
+            verify_element_exists(page, 'input[aria-label="Search NPCs"]', "Search field")
+            fill_input_by_aria(page, "Search NPCs", npc_name)
 
             npc_selector = f'.q-item:has-text("{npc_name}")'
             if wait_for_element(page, npc_selector) == 0:
