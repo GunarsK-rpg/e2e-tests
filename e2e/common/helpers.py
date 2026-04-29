@@ -583,14 +583,16 @@ def expand_section(page: Page, aria_label: str) -> None:
 
 def select_all_checkboxes_in_dialog(page: Page) -> None:
     """Check all unchecked q-checkboxes in the currently open dialog."""
-    dialog = page.locator(".q-dialog").first
-    unchecked = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]')
+    if wait_for_element(page, '[role="dialog"] [role="checkbox"]') == 0:
+        raise AssertionError("No checkboxes rendered in dialog")
+    dialog = page.locator('[role="dialog"]').last
+    unchecked = dialog.locator('[role="checkbox"][aria-checked="false"]')
     count = unchecked.count()
     if count == 0:
         raise AssertionError("No unchecked checkboxes found in dialog")
     for _ in range(count):
         unchecked.nth(0).click()  # Always click first unchecked (list shifts after check)
-    remaining = dialog.locator(f'{EXPERTISE_CHECKBOX}[aria-checked="false"]').count()
+    remaining = dialog.locator('[role="checkbox"][aria-checked="false"]').count()
     if remaining > 0:
         raise AssertionError(f"{remaining} checkboxes still unchecked after selection")
     print(f"   [OK] Selected {count} checkboxes in dialog")
