@@ -590,11 +590,9 @@ def select_all_checkboxes_in_dialog(page: Page) -> None:
     count = unchecked.count()
     if count == 0:
         raise AssertionError("No unchecked checkboxes found in dialog")
-    for _ in range(count):
+    for i in range(count):
         unchecked.nth(0).click()  # Always click first unchecked (list shifts after check)
-    remaining = dialog.locator('[role="checkbox"][aria-checked="false"]').count()
-    if remaining > 0:
-        raise AssertionError(f"{remaining} checkboxes still unchecked after selection")
+        expect(unchecked).to_have_count(count - i - 1)
     print(f"   [OK] Selected {count} checkboxes in dialog")
 
 
