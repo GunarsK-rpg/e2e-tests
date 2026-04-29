@@ -441,9 +441,9 @@ def do_logout(page: Page) -> None:
 # ========================================
 
 
-def wait_for_element(page: Page, selector: str, timeout: int = 5000) -> int:
+def wait_for_element(scope: "Page | Locator", selector: str, timeout: int = 5000) -> int:
     """Wait for element to appear, return count. Returns 0 on timeout (no raise)."""
-    loc = page.locator(selector)
+    loc = scope.locator(selector)
     try:
         loc.first.wait_for(state="visible", timeout=timeout)
     except PlaywrightTimeoutError:
@@ -583,9 +583,9 @@ def expand_section(page: Page, aria_label: str) -> None:
 
 def select_all_checkboxes_in_dialog(page: Page) -> None:
     """Check all unchecked q-checkboxes in the currently open dialog."""
-    if wait_for_element(page, '[role="dialog"] [role="checkbox"]') == 0:
-        raise AssertionError("No checkboxes rendered in dialog")
     dialog = page.locator('[role="dialog"]').last
+    if wait_for_element(dialog, '[role="checkbox"]') == 0:
+        raise AssertionError("No checkboxes rendered in dialog")
     unchecked = dialog.locator('[role="checkbox"][aria-checked="false"]')
     count = unchecked.count()
     if count == 0:
