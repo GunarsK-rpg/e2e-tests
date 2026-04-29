@@ -2,7 +2,7 @@
 pytest==9.0.3
 pytest-playwright==0.7.2
 pytest-timeout==2.4.0
-playwright==1.58.0
+playwright==1.59.0
 
 # Code quality and linting
 black==26.3.1
